@@ -35,7 +35,38 @@
 #
 # Copyright 2013 Your name here, unless otherwise noted.
 #
-class postgresql_server {
+class cspace_postgresql_server {
 
+  # package { 'postgresql':
+  #     ensure  => present,
+  #     name    => 'postgresql-9.1',
+  # }
+
+  class { 'postgresql::server':
+    ipv4acls                   => [
+                                    'host all postgres samehost ident',
+                                    'host nuxeo nuxeo samehost md5',
+                                    'host nuxeo reader samehost md5',
+                                    'host cspace cspace samehost md5',
+                                  ],
+  }
+
+  # This 'include file' ought to go somewhere PostgreSQL-relevant
+  # and/or we should edit PostgreSQL params directly
+
+  $includefile = "/tmp/postgresql_include.conf"
+
+  file { $includefile:
+    content => 'max_connections = 64',
+    notify  => Class['postgresql::server::service'],
+  }
+  ->
+  postgresql::server::config_entry { 'include':
+    value   => $includefile,
+  }
 
 }
+include cspace_postgresql_server
+
+
+

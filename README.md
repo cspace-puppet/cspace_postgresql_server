@@ -1,4 +1,6 @@
-postgresql_server
-=================
+cspace_postgresql_server
+========================
 
- A Puppet module to ensure that an instance of PostgreSQL 9.x server exists 
+ A Puppet module to:
+ * Ensure that an instance of PostgreSQL 9.x server exists. 
+ * Configure PostgreSQL for use by CollectionSpace.

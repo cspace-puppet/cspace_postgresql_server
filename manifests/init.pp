@@ -24,7 +24,7 @@
 # === Examples
 #
 #  class { postgresql_server:
-#    servers => [ 'pool.ntp.org', 'ntp.local.company.com' ],
+#  servers => [ 'pool.ntp.org', 'ntp.local.company.com' ],
 #  }
 #
 # === Authors
@@ -37,36 +37,55 @@
 #
 class cspace_postgresql_server {
 
-  # package { 'postgresql':
-  #     ensure  => present,
-  #     name    => 'postgresql-9.1',
-  # }
 
-  class { 'postgresql::server':
-    ipv4acls                   => [
-                                    'host all postgres samehost ident',
-                                    'host nuxeo nuxeo samehost md5',
-                                    'host nuxeo reader samehost md5',
-                                    'host cspace cspace samehost md5',
-                                  ],
-  }
+  # ---------------------------------------------------------
+  # Download PostgreSQL
+  # (EnterpriseDB installer)
+  # ---------------------------------------------------------
+  
+  
+  # ---------------------------------------------------------
+  # Install PostgreSQL
+  # (EnterpriseDB installer, unattended mode)
+  # ---------------------------------------------------------
+  
+  
+  # Commented-out fragments for possible use in this module:
+  
+  # ./ppasmeta-9.2.x.x-linux.run --mode unattended 
+  #   --superpassword database_superuser_password 
+  #   --webusername edb_user_name@email.com 
+  #   --webpassword edb_user_password
+    
+  # package { 'postgresql':
+  #   ensure  => present,
+  #   name  => 'postgresql-9.1',
+  # }
+  
+  # class { 'postgresql::server':
+  #   ipv4acls           => [
+  #                   'host all postgres samehost ident',
+  #                   'host nuxeo nuxeo samehost md5',
+  #                   'host nuxeo reader samehost md5',
+  #                   'host cspace cspace samehost md5',
+  #                 ],
+  # }
 
   # This 'include file' ought to go somewhere PostgreSQL-relevant
   # and/or we should edit PostgreSQL params directly
 
-  $includefile = "/tmp/postgresql_include.conf"
+  $includefile = '/tmp/postgresql_include.conf'
 
-  file { $includefile:
-    content => 'max_connections = 64',
-    notify  => Class['postgresql::server::service'],
-  }
-  ->
-  postgresql::server::config_entry { 'include':
-    value   => $includefile,
-  }
+  # file { $includefile:
+  #   content => 'max_connections = 64',
+  #   notify  => Class['postgresql::server::service'],
+  # }
+  # ->
+  # postgresql::server::config_entry { 'include':
+  #   value   => $includefile,
+  # }
 
 }
-include cspace_postgresql_server
 
 
 

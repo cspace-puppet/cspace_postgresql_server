@@ -102,12 +102,12 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5' ) {
     # OS X
     darwin: {
       $installer_filename   = "${distribution_filename}-${osx_extension}"
-      # exec { 'Download PostgreSQL installer':
-      #   command => "wget ${postgresql_repository_dir}/${filename}",
-      #   cwd     => $system_temp_dir,
-      #   creates => "${system_temp_dir}/${installer_filename}",
-      #   path    => $exec_paths,
-      # }
+      exec { 'Download PostgreSQL installer':
+        command => "wget ${postgresql_repository_dir}/${filename}",
+        cwd     => $system_temp_dir,
+        creates => "${system_temp_dir}/${installer_filename}",
+        path    => $exec_paths,
+      }
     }
     # Microsoft Windows
     windows: {
@@ -136,23 +136,32 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5' ) {
       }
     }
     # OS X
+    # The OS X installer comes as a disk image (.dmg) file, which must first be
+    # mounted as a volume before the installer it contains can be run.
     darwin: {
       exec { 'Mount PostgreSQL installer disk image':
         command => "hdiutil attach ${installer_filename}",
         cwd     => $system_temp_dir,
+        creates => "${osx_volume_name}/${osx_app_installer_name}",
         path    => $exec_paths,
-        # require => Exec[ 'Download PostgreSQL installer' ]
+        require => Exec[ 'Download PostgreSQL installer' ]
       }
       $osx_volume_name        = "/Volumes/PostgreSQL ${postgresql_version_long}"
       $osx_app_dir_name       = "postgresql-${postgresql_version_long}-osx.app"
       $osx_app_installer_name = "${osx_app_dir_name}/Contents/MacOS/osx-intel"
-      # Note: must enclose full path to installer within double quotes due to
-      # space character in volume name
+      # Note: must enclose the full path to the installer within double quotes
+      # due to the presence of a space character in its volume name.
       exec { 'Perform unattended installation of PostgreSQL':
         command => "\"${osx_volume_name}/${osx_app_installer_name}\" --mode unattended --superpassword ${superpw}",
         path    => $exec_paths,
-        # require => Exec[ 'Mount PostgreSQL installer disk image' ]
+        require => Exec[ 'Mount PostgreSQL installer disk image' ]
       }
+      # Unmounting of the installer volume, following installation, is optional but recommended.
+      # ${devicename} below might need to be scraped from 'hdiutil info' as '/dev/disk...'
+      # or else mounted initially at a known location via
+      # 'hdiutil attach {image} -mountpoint {mountpoint}'
+      # as per http://hintsforums.macworld.com/archive/index.php/t-31603.html
+      #
       # exec { 'Unmount PostgreSQL installer disk image':
       #   command => "hdiutil detach ${devicename}",
       #   cwd     => $system_temp_dir,

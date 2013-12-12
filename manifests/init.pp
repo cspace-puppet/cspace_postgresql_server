@@ -42,25 +42,44 @@ include cspace_environment::osfamily
 include cspace_environment::tempdir
 
 class cspace_postgresql_server ( $postgresql_version = '9.2.5' ) {
+  
+  # ---------------------------------------------------------
+  # Obtain platform-specific values
+  # ---------------------------------------------------------
+
+  $system_temp_dir           = $cspace_environment::tempdir::system_temp_directory
+  $os_family                 = $cspace_environment::osfamily::os_family
+    
+  case $os_family {
+    RedHat, Debian: {
+      $exec_paths = $cspace_environment::execpaths::linux_default_exec_paths
+      $os_bits = $cspace_environment::osbits::os_bits
+    }
+    # OS X
+    darwin: {
+      $exec_paths = $cspace_environment::execpaths::osx_default_exec_paths
+    }
+    # Microsoft Windows
+    windows: {
+    }
+    default: {
+    }
+  }
 
   # ---------------------------------------------------------
   # Download PostgreSQL
   # (EnterpriseDB installer)
   # ---------------------------------------------------------
   
-  $distribution_filename     = "postgresql-${postgresql_version}-1-"
+  $postgresql_version_long   = "${postgresql_version}-1"
+  $distribution_filename     = "postgresql-${postgresql_version_long}"
   $linux_64bit_extension     = 'linux-x64.run'
   $linux_32bit_extension     = 'linux.run'
   $osx_extension             = 'osx.dmg'
   $postgresql_repository_dir = 'http://get.enterprisedb.com/postgresql'
   
-  $system_temp_dir           = $cspace_environment::tempdir::system_temp_directory
-  $os_family                 = $cspace_environment::osfamily::os_family
-  
   case $os_family {
     RedHat, Debian: {
-      $exec_paths = $cspace_environment::execpaths::linux_default_exec_paths
-      $os_bits = $cspace_environment::osbits::os_bits
       if $os_bits == '64-bit' {
         $linux_extension = $linux_64bit_extension
       } elsif $os_bits == '32-bit' {
@@ -68,24 +87,23 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5' ) {
       } else {
         fail( 'Unknown hardware model when attempting to identify OS memory address size' )
       }
-      $filename   = "${distribution_filename}${$linux_extension}"
-      exec { 'Download CollectionSpace server distribution':
+      $installer_filename   = "${distribution_filename}-${linux_extension}"
+      exec { 'Download PostgreSQL installer':
         command => "wget ${postgresql_repository_dir}/${filename}",
         cwd     => $system_temp_dir,
-        creates => "${system_temp_dir}/${filename}",
+        creates => "${system_temp_dir}/${installer_filename}",
         path    => $exec_paths,
       }
     }
     # OS X
     darwin: {
-      $exec_paths = $cspace_environment::execpaths::osx_default_exec_paths
-      $filename   = "${distribution_filename}${osx_extension}"
-      exec { 'Download CollectionSpace server distribution':
-        command => "wget ${postgresql_repository_dir}/${filename}",
-        cwd     => $system_temp_dir,
-        creates => "${system_temp_dir}/${filename}",
-        path    => $exec_paths,
-      }
+      $installer_filename   = "${distribution_filename}-${osx_extension}"
+      # exec { 'Download PostgreSQL installer':
+      #   command => "wget ${postgresql_repository_dir}/${filename}",
+      #   cwd     => $system_temp_dir,
+      #   creates => "${system_temp_dir}/${installer_filename}",
+      #   path    => $exec_paths,
+      # }
     }
     # Microsoft Windows
     windows: {
@@ -94,15 +112,60 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5' ) {
     }
   }
   
-
-  
-  # (expands to /Volumes/PostgreSQL\ 9.2.5-1/postgresql-9.2.5-1-osx.app )
-
   
   # ---------------------------------------------------------
   # Install PostgreSQL
   # (EnterpriseDB installer, unattended mode)
   # ---------------------------------------------------------
+  
+  $superpw = "foobar-45690" # temporary; need to get this from environment
+  
+  case $os_family {
+    RedHat, Debian: {
+      exec { 'Perform unattended installation of PostgreSQL':
+        command => "./${installer_filename} --mode unattended --superpassword ${superpw}",
+        cwd     => $system_temp_dir,
+        path    => $exec_paths,
+        require => Exec[ 'Download PostgreSQL installer' ]
+      }
+    }
+    # OS X
+    darwin: {
+      exec { 'Mount PostgreSQL installer disk image':
+        command => "hdiutil attach ${installer_filename}",
+        cwd     => $system_temp_dir,
+        path    => $exec_paths,
+        # require => Exec[ 'Download PostgreSQL installer' ]
+      }
+      $osx_volume_name        = "/Volumes/PostgreSQL ${postgresql_version_long}"
+      $osx_app_dir_name       = "postgresql-${postgresql_version_long}-osx.app"
+      $osx_app_installer_name = "${osx_app_dir_name}/Contents/MacOS/osx-intel"
+      # Note: must enclose full path to installer within double quotes due to
+      # space character in volume name
+      exec { 'Perform unattended installation of PostgreSQL':
+        command => "\"${osx_volume_name}/${osx_app_installer_name}\" --mode unattended --superpassword ${superpw}",
+        path    => $exec_paths,
+        # require => Exec[ 'Mount PostgreSQL installer disk image' ]
+      }
+      # exec { 'Unmount PostgreSQL installer disk image':
+      #   command => "hdiutil detach ${devicename}",
+      #   cwd     => $system_temp_dir,
+      #   path    => $exec_paths,
+      #   require => [
+      #     Exec[ 'Open PostgreSQL installer disk image' ],
+      #     Exec[ 'Perform unattended installation of PostgreSQL' ],
+      #   ]
+      # }      
+    }
+    # Microsoft Windows
+    windows: {
+    }
+    default: {
+    }
+  }
+
+  
+  # (expands to /Volumes/PostgreSQL\ 9.2.5-1/postgresql-9.2.5-1-osx.app )
   
   
   # Commented-out fragments for possible use in this module:

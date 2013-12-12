@@ -94,6 +94,10 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5' ) {
         creates => "${system_temp_dir}/${installer_filename}",
         path    => $exec_paths,
       }
+      exec { 'Set executable permissions on PostgreSQL installer':
+        command => "chmod ug+x ${system_temp_dir}/${installer_filename}",
+        path    => $exec_paths,
+      }
     }
     # OS X
     darwin: {
@@ -123,10 +127,12 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5' ) {
   case $os_family {
     RedHat, Debian: {
       exec { 'Perform unattended installation of PostgreSQL':
-        command => "./${installer_filename} --mode unattended --superpassword ${superpw}",
-        cwd     => $system_temp_dir,
+        command => "$system_temp_dir/${installer_filename} --mode unattended --superpassword ${superpw}",
         path    => $exec_paths,
-        require => Exec[ 'Download PostgreSQL installer' ]
+        require => [
+          Exec[ 'Download PostgreSQL installer' ],
+          Exec[ 'Set executable permissions on PostgreSQL installer' ],
+        ]
       }
     }
     # OS X

@@ -60,7 +60,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5' ) {
   case $os_family {
     RedHat, Debian: {
       $exec_paths = $cspace_environment::execpaths::linux_default_exec_paths
-      $os_bits = $cspace_environment::osbits::osbits
+      $os_bits = $cspace_environment::osbits::os_bits
       if $os_bits == '64-bit' {
         $linux_extension = $linux_64bit_extension
       } elsif $os_bits == '32-bit' {

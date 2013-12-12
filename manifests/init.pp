@@ -67,9 +67,14 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5' ) {
   }
 
   # ---------------------------------------------------------
-  # Download PostgreSQL
-  # (EnterpriseDB installer)
+  # Download PostgreSQL installer
+  # (currently the EnterpriseDB-packaged installer)
   # ---------------------------------------------------------
+  
+  # Unlike package-related installations, the EnterpriseDB-packaged
+  # installer is cross-platform, and generally keeps up with new
+  # PostgreSQL releases over time. As well, multiple past releases
+  # are available in that organization's archives, if needed.
   
   $postgresql_version_long   = "${postgresql_version}-1"
   $distribution_filename     = "postgresql-${postgresql_version_long}"
@@ -116,6 +121,18 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5' ) {
     }
   }
   
+  # ---------------------------------------------------------
+  # Account for existing installation of PostgreSQL, if any
+  # ---------------------------------------------------------
+  
+  # FIXME: 
+  # We can't assume this manifest will always be run on a
+  # system on which PostgreSQL isn't installed. As a result,
+  # we should first:
+  #
+  # * Shut down PostgreSQL if it's present and running.
+  # * Ensure that any existing data directory isn't 
+  #   overwritten by a new installation.
   
   # ---------------------------------------------------------
   # Install PostgreSQL

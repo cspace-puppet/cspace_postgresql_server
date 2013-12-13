@@ -36,12 +36,14 @@
 # Copyright 2013 Your name here, unless otherwise noted.
 #
 
+include cspace_environment::env
 include cspace_environment::execpaths
 include cspace_environment::osbits
 include cspace_environment::osfamily
 include cspace_environment::tempdir
+include stdlib # for 'join()'
 
-class cspace_postgresql_server ( $postgresql_version = '9.2.5' ) {
+class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US.UTF-8' ) {
   
   # ---------------------------------------------------------
   # Obtain platform-specific values
@@ -71,10 +73,17 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5' ) {
   # (currently the EnterpriseDB-packaged installer)
   # ---------------------------------------------------------
   
-  # Unlike package-related installations, the EnterpriseDB-packaged
-  # installer is cross-platform, and generally keeps up with new
-  # PostgreSQL releases over time. As well, multiple past releases
-  # are available in that organization's archives, if needed.
+  # Unlike platform-specific package installations, the
+  # EnterpriseDB-packaged installer is cross-platform, and
+  # generally keeps up with new PostgreSQL releases.
+  # As well, many different past releases are available in
+  # that organization's archives, if needed.
+  
+  # For unattended installation command line options, see:
+  # http://www.enterprisedb.com/docs/en/9.2/instguide/
+  # with the above URL followed by (to avoid line wrapping)
+  # Postgres_Plus_Advanced_Server_Installation_Guide-16.htm
+  # Postgres_Plus_Advanced_Server_Installation_Guide-18.htm
   
   $postgresql_version_long   = "${postgresql_version}-1"
   $distribution_filename     = "postgresql-${postgresql_version_long}"
@@ -138,13 +147,20 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5' ) {
   # Install PostgreSQL
   # (EnterpriseDB installer, unattended mode)
   # ---------------------------------------------------------
-  
-  $superpw = "foobar-45690" # temporary; need to get this from environment
+  $superpw   = $cspace_environment::env::cspace_env['DB_PASSWORD']
+  $superacct = $cspace_environment::env::cspace_env['DB_USER']
   
   case $os_family {
     RedHat, Debian: {
+      $install_cmd = join(
+        [
+          "$system_temp_dir/${installer_filename}",
+          " --mode unattended --locale ${locale}",
+          " --superaccount ${superacct} --superpassword ${superpw}",
+        ]
+      )
       exec { 'Perform unattended installation of PostgreSQL':
-        command => "$system_temp_dir/${installer_filename} --mode unattended --superpassword ${superpw}",
+        command => $install_cmd,
         path    => $exec_paths,
         require => [
           Exec[ 'Download PostgreSQL installer' ],
@@ -168,16 +184,21 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5' ) {
       $osx_app_installer_name = "${osx_app_dir_name}/Contents/MacOS/osx-intel"
       # Note: must enclose the full path to the installer within double quotes
       # due to the presence of a space character in its volume name.
+      $install_cmd = join(
+        [
+          "\"${osx_volume_name}/${osx_app_installer_name}\"",
+          " --mode unattended --locale ${locale}",
+          " --superaccount ${superacct} --superpassword ${superpw}",
+        ]
+      )
       exec { 'Perform unattended installation of PostgreSQL':
-        command => "\"${osx_volume_name}/${osx_app_installer_name}\" --mode unattended --superpassword ${superpw}",
+        command => $install_cmd,
         path    => $exec_paths,
         require => Exec[ 'Mount PostgreSQL installer disk image' ]
       }
-      # Unmounting of the installer volume, following installation, is optional but recommended.
-      # ${devicename} below might need to be scraped from 'hdiutil info' as '/dev/disk...'
-      # or else mounted initially at a known location via
-      # 'hdiutil attach {image} -mountpoint {mountpoint}'
-      # as per http://hintsforums.macworld.com/archive/index.php/t-31603.html
+      # Unmounting of the installer volume, following installation,
+      # is optional but recommended. ${devicename} below might need
+      # to be scraped from 'hdiutil info' as '/dev/disk{diskidentifier}'
       #
       # exec { 'Unmount PostgreSQL installer disk image':
       #   command => "hdiutil detach ${devicename}",
@@ -194,18 +215,9 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5' ) {
     }
     default: {
     }
-  }
-
-  
-  # (expands to /Volumes/PostgreSQL\ 9.2.5-1/postgresql-9.2.5-1-osx.app )
-  
+  }    
   
   # Commented-out fragments for possible use in this module:
-  
-  # ./ppasmeta-9.2.x.x-linux.run --mode unattended 
-  #   --superpassword database_superuser_password 
-  #   --webusername edb_user_name@email.com 
-  #   --webpassword edb_user_password
     
   # package { 'postgresql':
   #   ensure  => present,

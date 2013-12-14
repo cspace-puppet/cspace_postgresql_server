@@ -41,6 +41,9 @@ include cspace_environment::execpaths
 include cspace_environment::osbits
 include cspace_environment::osfamily
 include cspace_environment::tempdir
+include postgresql::client
+include postgresql::globals
+include postgresql::server
 include stdlib # for 'join()'
 
 class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US.UTF-8' ) {
@@ -116,7 +119,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   case $os_family {
     RedHat, Debian: {
       class { 'postgresql::globals':
-        # version  => $postgresql_major_version, # use platform defaults on Linux
+        version  => $postgresql_major_version, # use platform defaults on Linux
         encoding => 'UTF8',
         locale   => $locale,
       }

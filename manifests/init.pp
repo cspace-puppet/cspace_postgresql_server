@@ -44,13 +44,45 @@ include cspace_environment::tempdir
 include stdlib # for 'join()'
 
 class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US.UTF-8' ) {
-  
+
+
   # ---------------------------------------------------------
-  # Obtain platform-specific values
+  # Validate parameters
   # ---------------------------------------------------------
 
-  $system_temp_dir           = $cspace_environment::tempdir::system_temp_directory
-  $os_family                 = $cspace_environment::osfamily::os_family
+  # TODO: Can further tighten these regexes as needed
+  
+  if (! locale =~ /^.*?\.UTF8$/) {
+    fail( "Unrecognized locale ${locale}" )
+  }
+
+  if (! $postgresql_version =~ /^\d+\.\d+\.\d+$/) and (! $postgresql_version =~ /^\d+\.\d+$/) {
+    fail( "Unrecognized PostgreSQL version ${postgresql_version}" )
+  }
+    
+  # ---------------------------------------------------------
+  # Obtain major version number
+  # ---------------------------------------------------------
+
+  if $postgresql_version =~ /^(\d+\.\d+)\.\d+$/ {
+      $postgresql_major_version = $1
+  } else {
+      $postgresql_major_version = $postgresql_version
+  }
+
+  # ---------------------------------------------------------
+  # Obtain database superuser name and password
+  # ---------------------------------------------------------
+
+  $superacct = $cspace_environment::env::cspace_env['DB_USER']
+  $superpw   = $cspace_environment::env::cspace_env['DB_PASSWORD']
+    
+  # ---------------------------------------------------------
+  # Obtain additional, platform-specific values
+  # ---------------------------------------------------------
+
+  $system_temp_dir = $cspace_environment::tempdir::system_temp_directory
+  $os_family       = $cspace_environment::osfamily::os_family
     
   case $os_family {
     RedHat, Debian: {
@@ -67,10 +99,114 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
     default: {
     }
   }
+  
+  # ######################################################################
+  # Diverge here, depending on platform (Linux v. non-Linux),
+  # by selecting one of the two options below
+  # ######################################################################
+  
+  
+  # ######################################################################
+  # Install and configure PostgreSQL using a Linux package manager,
+  # via the 'puppetlabs-postgresql' Puppet module 
+  # ######################################################################
+  
+  # FIXME: This first option is being initially checked in UNTESTED - ADR 2013-12-13
+
+  case $os_family {
+    RedHat, Debian: {
+      class { 'postgresql::globals':
+        # version  => $postgresql_major_version, # use platform defaults on Linux
+        encoding => 'UTF8',
+        locale   => $locale,
+      }
+      # By default, 'ensure => present', so instantiating this
+      # resource will install the PostgreSQL server.
+      class { 'postgresql::server':
+        ipv4acls => [
+          'host all postgres samehost ident',
+          'host nuxeo nuxeo samehost md5',
+          'host nuxeo reader samehost md5',
+          'host cspace cspace samehost md5',
+        ],
+      }
+      # By default, 'ensure => present', so instantiating this
+      # resource will install 'psql', the CLI PostgreSQL client.
+      class { 'postgresql::client':
+      }
+    }
+    default: {
+      # Do nothing
+    }
+  } #end case
+  
+  # ---------------------------------------------------------
+  # Configure host-based authentication settings
+  # ---------------------------------------------------------
+
+  # TODO: Tighten the default settings to restrict localhost
+  # access to specific users and/or databases
+
+  # TODO: Add any remote access needed for reporting, etc.
+
+  # Example of setting additional host-based access rules individually:
+  # postgresql::server::pg_hba_rule { 'Allow superuser to access all databases from localhost':
+  #   type        => 'host',
+  #   database    => 'all',
+  #   user        => $superacct,
+  #   address     => 'samehost',
+  #   auth_method => 'md5',
+  # }
+
+  case $os_family {
+    RedHat, Debian: {
+    }
+    default: {
+      # Do nothing
+    }
+  }
+  
+  # ---------------------------------------------------------
+  # Configure main PostgreSQL settings
+  # ---------------------------------------------------------
+
+  # TODO: The following uses an 'include file' pattern;
+  # we might instead directly edit the main configuration file.
+
+  # FIXME: Temporary location for testing. This 'include file'
+  # ought to go into the PostgreSQL conf directory.
+
+  $includefile = '/tmp/postgresql_include.conf'
+
+  # TODO: Change any settings, as required, in the main
+  # PostgreSQL configuration file
+  #
+  # This will include setting max_connections = 64 (or 32)
+
+  # file { $includefile:
+  #   content => 'max_connections = 64',
+  #   notify  => Class['postgresql::server::service'],
+  # }
+  # ->
+  # postgresql::server::config_entry { 'include':
+  #   value   => $includefile,
+  # }
+
+  case $os_family {
+    RedHat, Debian: {
+    }
+    default: {
+      # Do nothing
+    }
+  }
+
+  # ######################################################################
+  # Install and configure PostgreSQL using the EnterpriseDB-packaged
+  # installer for non-Linux platforms (OS X, Windows ...)
+  # ######################################################################
 
   # ---------------------------------------------------------
   # Download PostgreSQL installer
-  # (currently the EnterpriseDB-packaged installer)
   # ---------------------------------------------------------
   
   # Unlike platform-specific package installations, the
@@ -94,24 +230,24 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   
   case $os_family {
     RedHat, Debian: {
-      if $os_bits == '64-bit' {
-        $linux_extension = $linux_64bit_extension
-      } elsif $os_bits == '32-bit' {
-        $linux_extension = $linux_32bit_extension    
-      } else {
-        fail( 'Unknown hardware model when attempting to identify OS memory address size' )
-      }
-      $installer_filename   = "${distribution_filename}-${linux_extension}"
-      exec { 'Download PostgreSQL installer':
-        command => "wget ${postgresql_repository_dir}/${filename}",
-        cwd     => $system_temp_dir,
-        creates => "${system_temp_dir}/${installer_filename}",
-        path    => $exec_paths,
-      }
-      exec { 'Set executable permissions on PostgreSQL installer':
-        command => "chmod ug+x ${system_temp_dir}/${installer_filename}",
-        path    => $exec_paths,
-      }
+      # if $os_bits == '64-bit' {
+      #   $linux_extension = $linux_64bit_extension
+      # } elsif $os_bits == '32-bit' {
+      #   $linux_extension = $linux_32bit_extension    
+      # } else {
+      #   fail( 'Unknown hardware model when attempting to identify OS memory address size' )
+      # }
+      # $installer_filename   = "${distribution_filename}-${linux_extension}"
+      # exec { 'Download PostgreSQL installer':
+      #   command => "wget ${postgresql_repository_dir}/${filename}",
+      #   cwd     => $system_temp_dir,
+      #   creates => "${system_temp_dir}/${installer_filename}",
+      #   path    => $exec_paths,
+      # }
+      # exec { 'Set executable permissions on PostgreSQL installer':
+      #   command => "chmod ug+x ${system_temp_dir}/${installer_filename}",
+      #   path    => $exec_paths,
+      # }
     }
     # OS X
     darwin: {
@@ -147,31 +283,50 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   # Install PostgreSQL
   # (EnterpriseDB installer, unattended mode)
   # ---------------------------------------------------------
-  $superpw   = $cspace_environment::env::cspace_env['DB_PASSWORD']
-  $superacct = $cspace_environment::env::cspace_env['DB_USER']
+  
+  # The EnterpriseDB installer:
+  # Creates a system user to administer PostgreSQL.
+  # Installs the PostgreSQL server:
+  # * On OS X, in /Library/PostgreSQL/{version}
+  # Installs 'psql', the CLI PostgreSQL client.
+  # Configures the host-based authentication config file, pg_hba.conf,
+  # with localhost-only settings:
+  # --
+  # TYPE  DATABASE        USER            ADDRESS                 METHOD
+  # "local" is for Unix domain socket connections only
+  # local   all           all                                     md5
+  # IPv4 local connections:
+  # host    all           all             127.0.0.1/32            md5
+  # IPv6 local connections:
+  # host    all           all             ::1/128                 md5
+  # --
+  # Configures the main config file, postgresql.conf, with mostly default
+  # (commented-out) settings, save for local timezone, locale, etc.
+  # Starts the PostgreSQL server.
+  # Creates an administrative PostgreSQL user ("superuser").
   
   case $os_family {
     RedHat, Debian: {
-      $install_cmd = join(
-        [
-          "$system_temp_dir/${installer_filename}",
-          " --mode unattended --locale ${locale}",
-          " --superaccount ${superacct} --superpassword ${superpw}",
-        ]
-      )
-      exec { 'Perform unattended installation of PostgreSQL':
-        command => $install_cmd,
-        path    => $exec_paths,
-        require => [
-          Exec[ 'Download PostgreSQL installer' ],
-          Exec[ 'Set executable permissions on PostgreSQL installer' ],
-        ]
-      }
+      # $install_cmd = join(
+      #   [
+      #     "$system_temp_dir/${installer_filename}",
+      #     " --mode unattended --locale ${locale}",
+      #     " --superaccount ${superacct} --superpassword ${superpw}",
+      #   ]
+      # )
+      # exec { 'Perform unattended installation of PostgreSQL':
+      #   command => $install_cmd,
+      #   path    => $exec_paths,
+      #   require => [
+      #     Exec[ 'Download PostgreSQL installer' ],
+      #     Exec[ 'Set executable permissions on PostgreSQL installer' ],
+      #   ]
+      # }
     }
     # OS X
-    # The OS X installer comes as a disk image (.dmg) file, which must first be
-    # mounted as a volume before the installer it contains can be run.
     darwin: {
+      # The OS X installer comes as a disk image (.dmg) file, which must first be
+      # mounted as a volume before the installer it contains can be run.
       exec { 'Mount PostgreSQL installer disk image':
         command => "hdiutil attach ${installer_filename}",
         cwd     => $system_temp_dir,
@@ -191,13 +346,20 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
           " --superaccount ${superacct} --superpassword ${superpw}",
         ]
       )
-      exec { 'Perform unattended installation of PostgreSQL':
-        command => $install_cmd,
-        path    => $exec_paths,
-        require => Exec[ 'Mount PostgreSQL installer disk image' ]
-      }
+      # FIXME: This code works but is commented out for now.
+      # Uncomment only for further testing, or after we've
+      # put code in place to detect whether PostgreSQL is present.
+      #
+      # exec { 'Perform unattended installation of PostgreSQL':
+      #   command => $install_cmd,
+      #   path    => $exec_paths,
+      #   require => Exec[ 'Mount PostgreSQL installer disk image' ]
+      # }
+      #
       # Unmounting of the installer volume, following installation,
-      # is optional but recommended. ${devicename} below might need
+      # is optional but recommended.
+      #
+      # TODO: This exec is incomplete. ${devicename} below might need
       # to be scraped from 'hdiutil info' as '/dev/disk{diskidentifier}'
       #
       # exec { 'Unmount PostgreSQL installer disk image':
@@ -208,45 +370,55 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       #     Exec[ 'Open PostgreSQL installer disk image' ],
       #     Exec[ 'Perform unattended installation of PostgreSQL' ],
       #   ]
-      # }      
+      # }
     }
     # Microsoft Windows
     windows: {
     }
     default: {
     }
-  }    
+  }
   
-  # Commented-out fragments for possible use in this module:
-    
-  # package { 'postgresql':
-  #   ensure  => present,
-  #   name  => 'postgresql-9.1',
-  # }
+  # ---------------------------------------------------------
+  # Configure host-based authentication settings
+  # ---------------------------------------------------------
+
+  # TODO: Tighten the default settings to restrict localhost
+  # access to specific users and/or databases
   
-  # class { 'postgresql::server':
-  #   ipv4acls           => [
-  #                   'host all postgres samehost ident',
-  #                   'host nuxeo nuxeo samehost md5',
-  #                   'host nuxeo reader samehost md5',
-  #                   'host cspace cspace samehost md5',
-  #                 ],
-  # }
+  # TODO: Add any remote access needed for reporting, etc.
 
-  # This 'include file' ought to go somewhere PostgreSQL-relevant
-  # and/or we should edit PostgreSQL params directly
-
-  $includefile = '/tmp/postgresql_include.conf'
-
-  # file { $includefile:
-  #   content => 'max_connections = 64',
-  #   notify  => Class['postgresql::server::service'],
-  # }
-  # ->
-  # postgresql::server::config_entry { 'include':
-  #   value   => $includefile,
-  # }
-
+  case $os_family {
+    # OS X
+    darwin: {
+    }
+    # Microsoft Windows
+    windows: {
+    }
+    default: {
+    }
+  }
+  
+  # ---------------------------------------------------------
+  # Configure main PostgreSQL settings
+  # ---------------------------------------------------------
+  
+  # TODO: Change any settings, as required, in the main
+  # PostgreSQL configuration file
+  #
+  # This will include setting max_connections = 64 (or 32)
+  
+  case $os_family {
+    # OS X
+    darwin: {
+    }
+    # Microsoft Windows
+    windows: {
+    }
+    default: {
+    }
+  }
+  
 }
 
 

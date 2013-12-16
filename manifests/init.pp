@@ -48,7 +48,6 @@ include stdlib # for 'join()'
 
 class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US.UTF-8' ) {
 
-
   # ---------------------------------------------------------
   # Validate parameters
   # ---------------------------------------------------------
@@ -118,6 +117,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
 
   case $os_family {
     RedHat, Debian: {
+      notice ( 'Attempting to download EnterpriseDB PostgreSQL installer ...' )
       class { 'postgresql::globals':
         version  => $postgresql_major_version, # use platform defaults on Linux
         encoding => 'UTF8',
@@ -125,6 +125,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       }
       # By default, 'ensure => present', so instantiating this
       # resource will install the PostgreSQL server.
+      notice ( 'Ensuring that PostgreSQL server is present ...' )
       class { 'postgresql::server':
         ipv4acls => [
           'host all postgres samehost ident',
@@ -135,6 +136,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       }
       # By default, 'ensure => present', so instantiating this
       # resource will install 'psql', the CLI PostgreSQL client.
+      notice ( 'Ensuring that \'psql\' PostgreSQL client is present ...' )
       class { 'postgresql::client':
       }
     }
@@ -153,6 +155,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   # TODO: Add any remote access needed for reporting, etc.
 
   # Example of setting additional host-based access rules individually:
+  # notice ( 'Setting up PostgreSQL server host-based access rules ...' )
   # postgresql::server::pg_hba_rule { 'Allow superuser to access all databases from localhost':
   #   type        => 'host',
   #   database    => 'all',
@@ -161,13 +164,13 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   #   auth_method => 'md5',
   # }
 
-  case $os_family {
-    RedHat, Debian: {
-    }
-    default: {
-      # Do nothing
-    }
-  }
+  # case $os_family {
+  #   RedHat, Debian: {
+  #   }
+  #   default: {
+  #     # Do nothing
+  #   }
+  # }
   
   # ---------------------------------------------------------
   # Configure main PostgreSQL settings
@@ -242,7 +245,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       # }
       # $installer_filename   = "${distribution_filename}-${linux_extension}"
       # exec { 'Download PostgreSQL installer':
-      #   command => "wget ${postgresql_repository_dir}/${filename}",
+      #   command => "wget ${postgresql_repository_dir}/${installer_filename}",
       #   cwd     => $system_temp_dir,
       #   creates => "${system_temp_dir}/${installer_filename}",
       #   path    => $exec_paths,
@@ -254,9 +257,10 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
     }
     # OS X
     darwin: {
+      notice ( 'Downloading the EnterpriseDB PostgreSQL installer ...' )
       $installer_filename   = "${distribution_filename}-${osx_extension}"
       exec { 'Download PostgreSQL installer':
-        command => "wget ${postgresql_repository_dir}/${filename}",
+        command => "wget ${postgresql_repository_dir}/${installer_filename}",
         cwd     => $system_temp_dir,
         creates => "${system_temp_dir}/${installer_filename}",
         path    => $exec_paths,
@@ -275,8 +279,8 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   
   # FIXME: 
   # We can't assume this manifest will always be run on a
-  # system on which PostgreSQL isn't installed. As a result,
-  # we should first:
+  # system where PostgreSQL isn't already present. As a
+  # result, we should first:
   #
   # * Shut down PostgreSQL if it's present and running.
   # * Ensure that any existing data directory isn't 
@@ -328,14 +332,16 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
     }
     # OS X
     darwin: {
+      notice ( 'Mounting the EnterpriseDB PostgreSQL installer disk image ...' )
       # The OS X installer comes as a disk image (.dmg) file, which must first be
       # mounted as a volume before the installer it contains can be run.
       exec { 'Mount PostgreSQL installer disk image':
-        command => "hdiutil attach ${installer_filename}",
-        cwd     => $system_temp_dir,
-        creates => "${osx_volume_name}/${osx_app_installer_name}",
-        path    => $exec_paths,
-        require => Exec[ 'Download PostgreSQL installer' ]
+        command  => "hdiutil attach ${installer_filename}",
+        cwd      => $system_temp_dir,
+        creates  => "${osx_volume_name}/${osx_app_installer_name}",
+        path     => $exec_paths,
+        loglevel => debug,
+        require  => Exec[ 'Download PostgreSQL installer' ]
       }
       $osx_volume_name        = "/Volumes/PostgreSQL ${postgresql_version_long}"
       $osx_app_dir_name       = "postgresql-${postgresql_version_long}-osx.app"
@@ -353,6 +359,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       # Uncomment only for further testing, or after we've
       # put code in place to detect whether PostgreSQL is present.
       #
+      # notice ( 'Running the EnterpriseDB PostgreSQL installer ...' )
       # exec { 'Perform unattended installation of PostgreSQL':
       #   command => $install_cmd,
       #   path    => $exec_paths,
@@ -391,16 +398,16 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   
   # TODO: Add any remote access needed for reporting, etc.
 
-  case $os_family {
-    # OS X
-    darwin: {
-    }
-    # Microsoft Windows
-    windows: {
-    }
-    default: {
-    }
-  }
+  # case $os_family {
+  #   # OS X
+  #   darwin: {
+  #   }
+  #   # Microsoft Windows
+  #   windows: {
+  #   }
+  #   default: {
+  #   }
+  # }
   
   # ---------------------------------------------------------
   # Configure main PostgreSQL settings
@@ -411,16 +418,16 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   #
   # This will include setting max_connections = 64 (or 32)
   
-  case $os_family {
-    # OS X
-    darwin: {
-    }
-    # Microsoft Windows
-    windows: {
-    }
-    default: {
-    }
-  }
+  # case $os_family {
+  #   # OS X
+  #   darwin: {
+  #   }
+  #   # Microsoft Windows
+  #   windows: {
+  #   }
+  #   default: {
+  #   }
+  # }
   
 }
 

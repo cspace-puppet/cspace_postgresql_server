@@ -117,7 +117,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
 
   case $os_family {
     RedHat, Debian: {
-      notice ( 'Attempting to download EnterpriseDB PostgreSQL installer ...' )
+      notice ( 'Setting global values to be used by installer ...' )
       class { 'postgresql::globals':
         # version  => $postgresql_major_version, # use platform defaults on Linux
         encoding => 'UTF8',

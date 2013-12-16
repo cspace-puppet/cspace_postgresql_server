@@ -117,7 +117,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
 
   case $os_family {
     RedHat, Debian: {
-      notice ( 'Setting global values to be used by installer ...' )
+      notice( 'Setting global values to be used by installer ...' )
       class { 'postgresql::globals':
         # version  => $postgresql_major_version, # use platform defaults on Linux
         encoding => 'UTF8',
@@ -125,7 +125,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       }
       # By default, 'ensure => present', so instantiating this
       # resource will install the PostgreSQL server.
-      notice ( 'Ensuring that PostgreSQL server is present ...' )
+      notice( 'Ensuring that PostgreSQL server is present ...' )
       class { 'postgresql::server':
         ipv4acls => [
           'host all postgres samehost ident',
@@ -136,7 +136,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       }
       # By default, 'ensure => present', so instantiating this
       # resource will install 'psql', the CLI PostgreSQL client.
-      notice ( 'Ensuring that \'psql\' PostgreSQL client is present ...' )
+      notice( 'Ensuring that \'psql\' PostgreSQL client is present ...' )
       class { 'postgresql::client':
       }
     }
@@ -155,7 +155,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   # TODO: Add any remote access needed for reporting, etc.
 
   # Example of setting additional host-based access rules individually:
-  # notice ( 'Setting up PostgreSQL server host-based access rules ...' )
+  # notice( 'Setting up PostgreSQL server host-based access rules ...' )
   # postgresql::server::pg_hba_rule { 'Allow superuser to access all databases from localhost':
   #   type        => 'host',
   #   database    => 'all',
@@ -257,7 +257,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
     }
     # OS X
     darwin: {
-      notice ( 'Downloading the EnterpriseDB PostgreSQL installer ...' )
+      notice( 'Downloading the EnterpriseDB PostgreSQL installer ...' )
       $installer_filename   = "${distribution_filename}-${osx_extension}"
       exec { 'Download PostgreSQL installer':
         command => "wget ${postgresql_repository_dir}/${installer_filename}",
@@ -332,7 +332,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
     }
     # OS X
     darwin: {
-      notice ( 'Mounting the EnterpriseDB PostgreSQL installer disk image ...' )
+      notice( 'Mounting the EnterpriseDB PostgreSQL installer disk image ...' )
       # The OS X installer comes as a disk image (.dmg) file, which must first be
       # mounted as a volume before the installer it contains can be run.
       exec { 'Mount PostgreSQL installer disk image':
@@ -359,7 +359,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       # Uncomment only for further testing, or after we've
       # put code in place to detect whether PostgreSQL is present.
       #
-      # notice ( 'Running the EnterpriseDB PostgreSQL installer ...' )
+      # notice( 'Running the EnterpriseDB PostgreSQL installer ...' )
       # exec { 'Perform unattended installation of PostgreSQL':
       #   command => $install_cmd,
       #   path    => $exec_paths,

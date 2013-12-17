@@ -116,7 +116,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   case $os_family {
     RedHat, Debian: {
       notice( 'Setting global values to be used by installer ...' )
-      if $postgresql::server::default_version != undef {
+      if $postgresql::globals::default_version != undef {
         class { 'postgresql::globals':
           # Rather than specifying the PostgreSQL version on Linux distros,
           # use the platform package manager defaults wherever available. 

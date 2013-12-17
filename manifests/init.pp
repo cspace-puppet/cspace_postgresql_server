@@ -79,6 +79,12 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   $superacct = $cspace_environment::env::cspace_env['DB_USER']
   $superpw   = $cspace_environment::env::cspace_env['DB_PASSWORD']
 
+  # ---------------------------------------------------------
+  # Obtain operating system family
+  # ---------------------------------------------------------
+  
+  $os_family       = $cspace_environment::osfamily::os_family
+  
   
   # ######################################################################
   # Diverge here, depending on platform (Linux v. non-Linux),
@@ -218,7 +224,6 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   # ---------------------------------------------------------
 
   $system_temp_dir = $cspace_environment::tempdir::system_temp_directory
-  $os_family       = $cspace_environment::osfamily::os_family
     
   case $os_family {
     RedHat, Debian: {

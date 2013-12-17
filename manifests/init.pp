@@ -205,6 +205,14 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       # Do nothing
     }
   }
+  
+  # ---------------------------------------------------------
+  # Add datatype conversions
+  # ---------------------------------------------------------
+
+  # FIXME: Add Nuxeo-required datatype conversions to
+  # the template database(s).
+  
 
   # ######################################################################
   # Install and configure PostgreSQL using the EnterpriseDB-packaged

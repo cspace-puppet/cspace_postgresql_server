@@ -151,6 +151,8 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   case $os_family {
     RedHat, Debian: {
       notice( 'Ensuring additional PostgreSQL server host-based access rules, if any ...' )
+      # Providing 'ident'-based access for the 'postgres' user appears to be required
+      # by the puppetlabs-postgresql module for validating the connection.
       postgresql::server::pg_hba_rule { "\"local\" is for Unix domain socket connections only":
         type        => 'local',
         database    => 'all',

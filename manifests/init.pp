@@ -116,7 +116,6 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       # to missing fragment files when constructing pg_hba.conf. Thus, multiple
       # pg_hba_rule types have been used to configure that access, below.
       class { 'postgresql::server':
-        manage_firewall      => true,
         # Disables the default set of host-based authentication settings,
         # since we're setting CollectionSpace-relevant access rules below.
         pg_hba_conf_defaults => false,

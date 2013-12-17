@@ -145,9 +145,9 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       # Providing 'ident'-based access for the 'postgres' user appears to be required
       # by the puppetlabs-postgresql module for validating the database connection. (It may also
       # be required for setting the 'postgres' user's password, per postgresql::server::passwd.)
-      postgresql::server::pg_hba_rule { 'TYPE  DATABASE        USER            ADDRESS                 METHOD':
+      postgresql::server::pg_hba_rule { 'TYPE  DATABASE  USER  ADDRESS  METHOD':
         order       => '20',
-        description => '\"local\" is for Unix domain socket connections only',
+        description => 'Enable ident access over local (Unix domain socket) connections',
         type        => 'local',
         database    => 'all',
         user        => 'all',
@@ -155,7 +155,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       }
       postgresql::server::pg_hba_rule { 'superuser via IPv4':
         order       => '40',
-        description => 'Allow superuser to access all databases via IPv4 from localhost',
+        description => 'Superuser can access all databases via IPv4 from localhost',
         type        => 'host',
         database    => 'all',
         user        => $superacct,
@@ -164,7 +164,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       }
       postgresql::server::pg_hba_rule { 'nuxeo user via IPv4':
         order       => '60',
-        description => 'Allow \'nuxeo\' user to access all databases via IPv4 from localhost',
+        description => '\'nuxeo\' user can access all databases via IPv4 from localhost',
         type        => 'host',
         database    => 'all',
         user        => 'nuxeo',
@@ -173,7 +173,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       }
       postgresql::server::pg_hba_rule { 'cspace user via IPv4':
         order       => '80',
-        description => 'Allow \'cspace\' user to access all databases via IPv4 from localhost',
+        description => '\'cspace\' user can access \'cspace\' database via IPv4 from localhost',
         type        => 'host',
         database    => 'cspace',
         user        => 'cspace',

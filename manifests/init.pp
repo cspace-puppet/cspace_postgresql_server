@@ -126,12 +126,15 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       # resource will install the PostgreSQL server.
       notice( 'Ensuring that PostgreSQL server is present ...' )
       class { 'postgresql::server':
-        ipv4acls => [
+        ipv4acls             => [
           'host all postgres samehost ident',
           'host nuxeo nuxeo samehost md5',
           'host nuxeo reader samehost md5',
           'host cspace cspace samehost md5',
         ],
+        # Disables default set of host-based authentication settings,
+        # since we're setting CollectionSpace-relevant settings above.
+        pg_hba_conf_defaults => false,
       }
       # By default, 'ensure => present', so instantiating the following
       # resource will install 'psql', the CLI PostgreSQL client.
@@ -153,52 +156,38 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
 
   # TODO: Add any remote access needed for reporting, etc.
 
-  # Example of setting additional host-based access rules individually:
-  # notice( 'Setting up PostgreSQL server host-based access rules ...' )
-  # postgresql::server::pg_hba_rule { 'Allow superuser to access all databases from localhost':
-  #   type        => 'host',
-  #   database    => 'all',
-  #   user        => $superacct,
-  #   address     => 'samehost',
-  #   auth_method => 'md5',
-  # }
-
-  # case $os_family {
-  #   RedHat, Debian: {
-  #   }
-  #   default: {
-  #     # Do nothing
-  #   }
-  # }
+  case $os_family {
+    RedHat, Debian: {
+      # notice( 'Ensuring additional PostgreSQL server host-based access rules, if any ...' )
+      # Example of individually setting additional host-based access rules.
+      # (The following sample rule was already set up when instantiating
+      # the PostgreSQL server, above.)
+      # postgresql::server::pg_hba_rule { 'Allow superuser to access all databases from localhost':
+      #   type        => 'host',
+      #   database    => 'all',
+      #   user        => $superacct,
+      #   address     => 'samehost',
+      #   auth_method => 'md5',
+      # }
+    }
+    default: {
+      # Do nothing
+    }
+  }
   
   # ---------------------------------------------------------
   # Configure main PostgreSQL settings
   # ---------------------------------------------------------
 
-  # TODO: The following uses an 'include file' pattern;
-  # we might instead directly edit the main configuration file.
-
-  # FIXME: Temporary location for testing. This 'include file'
-  # ought to go into the PostgreSQL conf directory.
-
-  $includefile = '/tmp/postgresql_include.conf'
-
   # TODO: Change any settings, as required, in the main
   # PostgreSQL configuration file
-  #
-  # This will include setting max_connections = 64 (or 32)
-
-  # file { $includefile:
-  #   content => 'max_connections = 64',
-  #   notify  => Class['postgresql::server::service'],
-  # }
-  # ->
-  # postgresql::server::config_entry { 'include':
-  #   value   => $includefile,
-  # }
 
   case $os_family {
     RedHat, Debian: {
+      notice( 'Ensuring CollectionSpace-relevant PostgreSQL configuration settings ...' )
+      postgresql::server::config_entry { 'max_connections':
+        value   => 32, # Conservative default; could be changed to 64 
+      }
     }
     default: {
       # Do nothing
@@ -256,7 +245,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
     }
     # OS X
     darwin: {
-      notice( 'Downloading the EnterpriseDB PostgreSQL installer ...' )
+      notice( 'Downloading EnterpriseDB PostgreSQL installer ...' )
       $installer_filename   = "${distribution_filename}-${osx_extension}"
       exec { 'Download PostgreSQL installer':
         command => "wget ${postgresql_repository_dir}/${installer_filename}",
@@ -297,7 +286,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   # * On OS X, in /Library/PostgreSQL/{version}
   # Installs 'psql', the CLI PostgreSQL client.
   # Configures the host-based authentication config file, pg_hba.conf,
-  # with localhost-only settings:
+  # with localhost-only settings (with the 9.2.5 installer under OS X):
   # --
   # TYPE  DATABASE        USER            ADDRESS                 METHOD
   # "local" is for Unix domain socket connections only
@@ -333,7 +322,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
     }
     # OS X
     darwin: {
-      notice( 'Mounting the EnterpriseDB PostgreSQL installer disk image ...' )
+      notice( 'Mounting EnterpriseDB PostgreSQL installer disk image ...' )
       # The OS X installer comes as a disk image (.dmg) file, which must first be
       # mounted as a volume before the installer it contains can be run.
       exec { 'Mount PostgreSQL installer disk image':

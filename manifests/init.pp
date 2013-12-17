@@ -113,15 +113,22 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   # via the 'puppetlabs-postgresql' Puppet module 
   # ######################################################################
   
-  # FIXME: This first option is being initially checked in UNTESTED - ADR 2013-12-13
-
   case $os_family {
     RedHat, Debian: {
       notice( 'Setting global values to be used by installer ...' )
-      class { 'postgresql::globals':
-        # version  => $postgresql_major_version, # use platform defaults on Linux
-        encoding => 'UTF8',
-        locale   => $locale,
+      if $postgresql::server::default_version != undef {
+        class { 'postgresql::globals':
+          # Rather than specifying the PostgreSQL version on Linux distros,
+          # use the platform package manager defaults wherever available. 
+          encoding => 'UTF8',
+          locale   => $locale,
+        }
+      } else {
+        class { 'postgresql::globals':
+          version  => $postgresql_major_version,
+          encoding => 'UTF8',
+          locale   => $locale,
+        }
       }
       # By default, 'ensure => present', so instantiating this
       # resource will install the PostgreSQL server.
@@ -322,6 +329,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       #     " --superaccount ${superacct} --superpassword ${superpw}",
       #   ]
       # )
+      # notice( 'Running the EnterpriseDB PostgreSQL installer ...' )
       # exec { 'Perform unattended installation of PostgreSQL':
       #   command => $install_cmd,
       #   path    => $exec_paths,

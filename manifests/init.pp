@@ -177,8 +177,6 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         user        => 'all',
         auth_method => 'ident',
       }
-      postgresql::server::pg_hba_rule { 'TYPE  DATABASE        USER            ADDRESS                 METHOD':
-      }
     }
     default: {
       # Do nothing

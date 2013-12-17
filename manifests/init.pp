@@ -110,7 +110,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       # to missing fragment files when constructing pg_hba.conf. Thus, multiple
       # pg_hba_rule types have been used to configure that access, below.
       class { 'postgresql::server':
-        manage_firewall => true,
+        manage_firewall      => true,
         # Disables the default set of host-based authentication settings,
         # since we're setting CollectionSpace-relevant access rules below.
         pg_hba_conf_defaults => false,
@@ -142,7 +142,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       # be required for setting the 'postgres' user's password, per postgresql::server::passwd.)
       postgresql::server::pg_hba_rule { 'TYPE  DATABASE        USER            ADDRESS                 METHOD':
         order       => '20',
-        description => "\"local\" is for Unix domain socket connections only",
+        description => '\"local\" is for Unix domain socket connections only',
         type        => 'local',
         database    => 'all',
         user        => 'all',
@@ -159,7 +159,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       }
       postgresql::server::pg_hba_rule { 'nuxeo user via IPv4':
         order       => '60',
-        description => 'Allow \'nuxeo\' user to access all databases via IPv4 from localhost'
+        description => 'Allow \'nuxeo\' user to access all databases via IPv4 from localhost',
         type        => 'host',
         database    => 'all',
         user        => 'nuxeo',
@@ -168,7 +168,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       }
       postgresql::server::pg_hba_rule { 'cspace user via IPv4':
         order       => '80',
-        description => 'Allow \'cspace\' user to access all databases via IPv4 from localhost'
+        description => 'Allow \'cspace\' user to access all databases via IPv4 from localhost',
         type        => 'host',
         database    => 'cspace',
         user        => 'cspace',

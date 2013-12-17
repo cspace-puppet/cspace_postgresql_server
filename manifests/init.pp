@@ -118,13 +118,15 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       notice( 'Setting global values to be used by installer ...' )
       class { 'postgresql::globals':
         # Rather than specifying the PostgreSQL version on Linux distros,
-        # use the platform package manager defaults wherever available. 
+        # use the per-platform package manager defaults wherever available. 
+        # This will help ensure that the appropriate packages are available.
         encoding => 'UTF8',
         locale   => $locale,
       }
+      notice( 'Ensuring that PostgreSQL server is present ...' )
       # By default, 'ensure => present', so instantiating the following
       # resource will install the PostgreSQL server.
-      notice( 'Ensuring that PostgreSQL server is present ...' )
+      #
       # Note: Attempting to set host-based access via the 'ipv4acls' attribute
       # together with 'pg_hba_conf_defaults => false' resulted in an error due
       # to missing fragment files when constructing pg_hba.conf. Thus, multiple

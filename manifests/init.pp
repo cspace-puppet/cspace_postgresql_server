@@ -264,6 +264,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         cwd     => $system_temp_dir,
         creates => "${system_temp_dir}/${installer_filename}",
         path    => $exec_paths,
+        logoutput => on_failure,
       }
     }
     # Microsoft Windows
@@ -336,12 +337,14 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       # The OS X installer comes as a disk image (.dmg) file, which must first be
       # mounted as a volume before the installer it contains can be run.
       exec { 'Mount PostgreSQL installer disk image':
-        command  => "hdiutil attach ${installer_filename}",
-        cwd      => $system_temp_dir,
-        creates  => "${osx_volume_name}/${osx_app_installer_name}",
-        path     => $exec_paths,
-        loglevel => debug,
-        require  => Exec[ 'Download PostgreSQL installer' ]
+        command   => "hdiutil attach ${installer_filename}",
+        cwd       => $system_temp_dir,
+        # The existence of the following 'creates' attribute appeared to
+        # prevent some mounts even when the volume wasn't mounted.
+        # creates   => "${osx_volume_name}/${osx_app_installer_name}",
+        path      => $exec_paths,
+        logoutput => on_failure,
+        require   => Exec[ 'Download PostgreSQL installer' ]
       }
       $osx_volume_name        = "/Volumes/PostgreSQL ${postgresql_version_long}"
       $osx_app_dir_name       = "postgresql-${postgresql_version_long}-osx.app"

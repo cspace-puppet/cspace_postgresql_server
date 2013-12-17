@@ -116,21 +116,13 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   case $os_family {
     RedHat, Debian: {
       notice( 'Setting global values to be used by installer ...' )
-      if $postgresql::globals::default_version != undef {
-        class { 'postgresql::globals':
-          # Rather than specifying the PostgreSQL version on Linux distros,
-          # use the platform package manager defaults wherever available. 
-          encoding => 'UTF8',
-          locale   => $locale,
-        }
-      } else {
-        class { 'postgresql::globals':
-          version  => $postgresql_major_version,
-          encoding => 'UTF8',
-          locale   => $locale,
-        }
+      class { 'postgresql::globals':
+        # Rather than specifying the PostgreSQL version on Linux distros,
+        # use the platform package manager defaults wherever available. 
+        encoding => 'UTF8',
+        locale   => $locale,
       }
-      # By default, 'ensure => present', so instantiating this
+      # By default, 'ensure => present', so instantiating the following
       # resource will install the PostgreSQL server.
       notice( 'Ensuring that PostgreSQL server is present ...' )
       class { 'postgresql::server':
@@ -141,7 +133,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
           'host cspace cspace samehost md5',
         ],
       }
-      # By default, 'ensure => present', so instantiating this
+      # By default, 'ensure => present', so instantiating the following
       # resource will install 'psql', the CLI PostgreSQL client.
       notice( 'Ensuring that \'psql\' PostgreSQL client is present ...' )
       class { 'postgresql::client':

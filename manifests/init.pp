@@ -168,7 +168,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         user        => $superacct,
         address     => 'samehost',
         auth_method => 'md5',
-      # }
+      }
     }
     default: {
       # Do nothing

@@ -150,32 +150,34 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   case $os_family {
     RedHat, Debian: {
       notice( 'Ensuring additional PostgreSQL server host-based access rules, if any ...' )
-      postgresql::server::pg_hba_rule { '\"local\" is for Unix domain socket connections only':
-        type        => 'local',
-        database    => 'all',
-        user        => 'all',
-        auth_method => 'md5',
-      } ->
-      postgresql::server::pg_hba_rule { 'Allow superuser to access all databases via IPv4 from localhost':
-        type        => 'host',
-        database    => 'all',
-        user        => $superacct,
-        address     => 'samehost',
-        auth_method => 'md5',
-      } ->
-      postgresql::server::pg_hba_rule { 'Allow \'nuxeo\' user to access all databases via IPv4 from localhost':
-        type        => 'host',
-        database    => 'all',
-        user        => 'nuxeo',
-        address     => 'samehost',
-        auth_method => 'md5',
-      } ->
       postgresql::server::pg_hba_rule { 'Allow \'cspace\' user to access the cspace database via IPv4 from localhost':
         type        => 'host',
         database    => 'cspace',
         user        => 'cspace',
         address     => 'samehost',
         auth_method => 'md5',
+      }
+      postgresql::server::pg_hba_rule { 'Allow \'nuxeo\' user to access all databases via IPv4 from localhost':
+        type        => 'host',
+        database    => 'all',
+        user        => 'nuxeo',
+        address     => 'samehost',
+        auth_method => 'md5',
+      }
+      postgresql::server::pg_hba_rule { 'Allow superuser to access all databases via IPv4 from localhost':
+        type        => 'host',
+        database    => 'all',
+        user        => $superacct,
+        address     => 'samehost',
+        auth_method => 'md5',
+      }
+      postgresql::server::pg_hba_rule { '\"local\" is for Unix domain socket connections only':
+        type        => 'local',
+        database    => 'all',
+        user        => 'all',
+        auth_method => 'ident',
+      }
+      postgresql::server::pg_hba_rule { 'TYPE  DATABASE        USER            ADDRESS                 METHOD':
       }
     }
     default: {

@@ -125,6 +125,10 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       # By default, 'ensure => present', so instantiating the following
       # resource will install the PostgreSQL server.
       notice( 'Ensuring that PostgreSQL server is present ...' )
+      # Note: Attempting to set host-based access via the 'ipv4acls' attribute
+      # together with 'pg_hba_conf_defaults => false' resulted in an error due
+      # to missing fragment files when constructing pg_hba.conf. Thus, multiple
+      # pg_hba_rule types have been used to configure that access, below.
       class { 'postgresql::server':
         # Disables the default set of host-based authentication settings,
         # since we're setting CollectionSpace-relevant access rules below.
@@ -148,7 +152,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
 
   # TODO: Add any additional access rules required, such as
   # rules required to support local or remote reporting, etc.
-
+  
   case $os_family {
     RedHat, Debian: {
       notice( 'Ensuring additional PostgreSQL server host-based access rules, if any ...' )
@@ -440,6 +444,14 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   #   default: {
   #   }
   # }
+  
+  # ---------------------------------------------------------
+  # Add datatype conversions
+  # ---------------------------------------------------------
+
+  # FIXME: Add Nuxeo-required datatype conversions to
+  # the template database(s).
+  
   
 }
 

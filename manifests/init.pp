@@ -140,13 +140,14 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
     default: {
       # Do nothing
     }
-  } #end case
+  }
   
   # ---------------------------------------------------------
   # Configure host-based authentication settings
   # ---------------------------------------------------------
 
-  # TODO: Add any access rules needed for local or remote reporting, etc.
+  # TODO: Add any additional access rules required, such as
+  # rules required to support local or remote reporting, etc.
 
   case $os_family {
     RedHat, Debian: {
@@ -190,8 +191,8 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   # Configure main PostgreSQL settings
   # ---------------------------------------------------------
 
-  # TODO: Change any settings, as required, in the main
-  # PostgreSQL configuration file
+  # TODO: Change additional settings beyond those below, as
+  # required for database tuning or other implementation-specific purposes.
 
   case $os_family {
     RedHat, Debian: {

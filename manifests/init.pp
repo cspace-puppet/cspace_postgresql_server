@@ -129,6 +129,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         # Disables the default set of host-based authentication settings,
         # since we're setting CollectionSpace-relevant access rules below.
         pg_hba_conf_defaults => false,
+        postgres_password    => $superpw,
       }
       # By default, 'ensure => present', so instantiating the following
       # resource will install 'psql', the CLI PostgreSQL client.

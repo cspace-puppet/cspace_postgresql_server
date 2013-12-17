@@ -126,12 +126,12 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       # resource will install the PostgreSQL server.
       notice( 'Ensuring that PostgreSQL server is present ...' )
       class { 'postgresql::server':
-        ipv4acls             => [
-          'host all postgres samehost ident',
-          'host nuxeo nuxeo samehost md5',
-          'host nuxeo reader samehost md5',
-          'host cspace cspace samehost md5',
-        ],
+        # ipv4acls             => [
+        #   'host all postgres samehost ident',
+        #   'host nuxeo nuxeo samehost md5',
+        #   'host nuxeo reader samehost md5',
+        #   'host cspace cspace samehost md5',
+        # ],
         # Disables default set of host-based authentication settings,
         # since we're setting CollectionSpace-relevant settings above.
         pg_hba_conf_defaults => false,
@@ -158,16 +158,16 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
 
   case $os_family {
     RedHat, Debian: {
-      # notice( 'Ensuring additional PostgreSQL server host-based access rules, if any ...' )
+      notice( 'Ensuring additional PostgreSQL server host-based access rules, if any ...' )
       # Example of individually setting additional host-based access rules.
       # (The following sample rule was already set up when instantiating
       # the PostgreSQL server, above.)
-      # postgresql::server::pg_hba_rule { 'Allow superuser to access all databases from localhost':
-      #   type        => 'host',
-      #   database    => 'all',
-      #   user        => $superacct,
-      #   address     => 'samehost',
-      #   auth_method => 'md5',
+      postgresql::server::pg_hba_rule { 'Allow superuser to access all databases from localhost':
+        type        => 'host',
+        database    => 'all',
+        user        => $superacct,
+        address     => 'samehost',
+        auth_method => 'md5',
       # }
     }
     default: {

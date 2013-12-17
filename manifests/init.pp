@@ -78,29 +78,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
 
   $superacct = $cspace_environment::env::cspace_env['DB_USER']
   $superpw   = $cspace_environment::env::cspace_env['DB_PASSWORD']
-    
-  # ---------------------------------------------------------
-  # Obtain additional, platform-specific values
-  # ---------------------------------------------------------
 
-  $system_temp_dir = $cspace_environment::tempdir::system_temp_directory
-  $os_family       = $cspace_environment::osfamily::os_family
-    
-  case $os_family {
-    RedHat, Debian: {
-      $exec_paths = $cspace_environment::execpaths::linux_default_exec_paths
-      $os_bits = $cspace_environment::osbits::os_bits
-    }
-    # OS X
-    darwin: {
-      $exec_paths = $cspace_environment::execpaths::osx_default_exec_paths
-    }
-    # Microsoft Windows
-    windows: {
-    }
-    default: {
-    }
-  }
   
   # ######################################################################
   # Diverge here, depending on platform (Linux v. non-Linux),
@@ -132,6 +110,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       # to missing fragment files when constructing pg_hba.conf. Thus, multiple
       # pg_hba_rule types have been used to configure that access, below.
       class { 'postgresql::server':
+        manage_firewall => true,
         # Disables the default set of host-based authentication settings,
         # since we're setting CollectionSpace-relevant access rules below.
         pg_hba_conf_defaults => false,
@@ -159,28 +138,37 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
     RedHat, Debian: {
       notice( 'Ensuring additional PostgreSQL server host-based access rules, if any ...' )
       # Providing 'ident'-based access for the 'postgres' user appears to be required
-      # by the puppetlabs-postgresql module for validating the connection.
-      postgresql::server::pg_hba_rule { "\"local\" is for Unix domain socket connections only":
+      # by the puppetlabs-postgresql module for validating the database connection. (It may also
+      # be required for setting the 'postgres' user's password, per postgresql::server::passwd.)
+      postgresql::server::pg_hba_rule { 'TYPE  DATABASE        USER            ADDRESS                 METHOD':
+        order       => '20',
+        description => "\"local\" is for Unix domain socket connections only",
         type        => 'local',
         database    => 'all',
         user        => 'all',
         auth_method => 'ident',
       }
-      postgresql::server::pg_hba_rule { 'Allow superuser to access all databases via IPv4 from localhost':
+      postgresql::server::pg_hba_rule { 'superuser via IPv4':
+        order       => '40',
+        description => 'Allow superuser to access all databases via IPv4 from localhost',
         type        => 'host',
         database    => 'all',
         user        => $superacct,
         address     => 'samehost',
         auth_method => 'md5',
       }
-      postgresql::server::pg_hba_rule { 'Allow \'nuxeo\' user to access all databases via IPv4 from localhost':
+      postgresql::server::pg_hba_rule { 'nuxeo user via IPv4':
+        order       => '60',
+        description => 'Allow \'nuxeo\' user to access all databases via IPv4 from localhost'
         type        => 'host',
         database    => 'all',
         user        => 'nuxeo',
         address     => 'samehost',
         auth_method => 'md5',
       }
-      postgresql::server::pg_hba_rule { 'Allow \'cspace\' user to access the cspace database via IPv4 from localhost':
+      postgresql::server::pg_hba_rule { 'cspace user via IPv4':
+        order       => '80',
+        description => 'Allow \'cspace\' user to access all databases via IPv4 from localhost'
         type        => 'host',
         database    => 'cspace',
         user        => 'cspace',
@@ -226,6 +214,29 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   # ######################################################################
 
   # ---------------------------------------------------------
+  # Obtain platform-specific values
+  # ---------------------------------------------------------
+
+  $system_temp_dir = $cspace_environment::tempdir::system_temp_directory
+  $os_family       = $cspace_environment::osfamily::os_family
+    
+  case $os_family {
+    RedHat, Debian: {
+      $exec_paths = $cspace_environment::execpaths::linux_default_exec_paths
+      $os_bits = $cspace_environment::osbits::os_bits
+    }
+    # OS X
+    darwin: {
+      $exec_paths = $cspace_environment::execpaths::osx_default_exec_paths
+    }
+    # Microsoft Windows
+    windows: {
+    }
+    default: {
+    }
+  }
+
+  # ---------------------------------------------------------
   # Download PostgreSQL installer
   # ---------------------------------------------------------
   
@@ -255,7 +266,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       # } elsif $os_bits == '32-bit' {
       #   $linux_extension = $linux_32bit_extension    
       # } else {
-      #   fail( 'Unknown hardware model when attempting to identify OS memory address size' )
+      #   fail( 'Could not select Linux PostgreSQL installer: unknown value for OS virtual address space' )
       # }
       # $installer_filename   = "${distribution_filename}-${linux_extension}"
       # exec { 'Download PostgreSQL installer':
@@ -297,7 +308,8 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   # system where PostgreSQL isn't already present. As a
   # result, we should first:
   #
-  # * Shut down PostgreSQL if it's present and running.
+  # * Check for the presence of PostgreSQL.
+  # * Shut down PostgreSQL, if it's both present and running.
   # * Ensure that any existing data directory isn't 
   #   overwritten by a new installation.
   

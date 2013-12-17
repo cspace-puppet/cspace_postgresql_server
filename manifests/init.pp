@@ -155,7 +155,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         type        => 'local',
         database    => 'all',
         user        => 'all',
-        auth_method => 'md5',
+        auth_method => 'ident',
       }
       postgresql::server::pg_hba_rule { 'Allow superuser to access all databases via IPv4 from localhost':
         type        => 'host',

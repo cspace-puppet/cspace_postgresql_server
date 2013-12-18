@@ -466,15 +466,15 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   # Add datatype conversions
   # ---------------------------------------------------------
   
-  $psql_cmd = 'psql -U ${superacct} -d template1'
+  $psql_cmd = "psql -U ${superacct} -d template1"
   
   # Function and associated datatype cast to convert integers to text
-  $int_txt_func    = 'CREATE FUNCTION pg_catalog.text(integer) RETURNS text STRICT IMMUTABLE LANGUAGE SQL AS \'SELECT textin(int4out(\$1));\';'
+  $int_txt_func    = "CREATE FUNCTION pg_catalog.text(integer) RETURNS text STRICT IMMUTABLE LANGUAGE SQL AS 'SELECT textin(int4out(\$1));';"
   $int_txt_cast    = 'CREATE CAST (integer AS text) WITH FUNCTION pg_catalog.text(integer) AS IMPLICIT;'
   $int_txt_comment = 'COMMENT ON FUNCTION pg_catalog.text(integer) IS \'convert integer to text\';'
   
   # Function and associated datatype cast to convert 'bigints' to text
-  $bigint_txt_func    = 'CREATE FUNCTION pg_catalog.text(bigint) RETURNS text STRICT IMMUTABLE LANGUAGE SQL AS \'SELECT textin(int8out(\$1));\';'
+  $bigint_txt_func    = "CREATE FUNCTION pg_catalog.text(bigint) RETURNS text STRICT IMMUTABLE LANGUAGE SQL AS 'SELECT textin(int8out(\$1));';"
   $bigint_txt_cast    = 'CREATE CAST (bigint AS text) WITH FUNCTION pg_catalog.text(bigint) AS IMPLICIT;'
   $bigint_txt_comment = 'COMMENT ON FUNCTION pg_catalog.text(bigint) IS \'convert bigint to text\';'
   

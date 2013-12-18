@@ -126,6 +126,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         # Rather than specifying the PostgreSQL version on Linux distros,
         # use the per-platform package manager defaults wherever available. 
         # This will help ensure that the appropriate packages are available.
+        # (That's why the 'version' attribute doesn't appear here.)
         encoding => 'UTF8',
         locale   => $locale,
       }

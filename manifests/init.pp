@@ -501,6 +501,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         require   => [ 
           Class[ 'postgresql::server' ],
           Class[ 'postgresql::client' ],
+          Exec[ 'Add integer-to-text conversion function' ],
         ]
       }
       exec { 'Add integer-to-text conversion comment':
@@ -512,6 +513,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         require   => [ 
           Class[ 'postgresql::server' ],
           Class[ 'postgresql::client' ],
+          Exec[ 'Add integer-to-text conversion function' ],
         ]
       }
     }

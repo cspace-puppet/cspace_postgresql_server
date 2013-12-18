@@ -85,6 +85,28 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   
   $os_family       = $cspace_environment::osfamily::os_family
   
+  # ---------------------------------------------------------
+  # Obtain platform-specific values
+  # ---------------------------------------------------------
+
+  $system_temp_dir = $cspace_environment::tempdir::system_temp_directory
+    
+  case $os_family {
+    RedHat, Debian: {
+      $exec_paths = $cspace_environment::execpaths::linux_default_exec_paths
+      $os_bits = $cspace_environment::osbits::os_bits
+    }
+    # OS X
+    darwin: {
+      $exec_paths = $cspace_environment::execpaths::osx_default_exec_paths
+    }
+    # Microsoft Windows
+    windows: {
+    }
+    default: {
+    }
+  }
+  
   
   # ######################################################################
   # Diverge here, depending on platform (Linux v. non-Linux),
@@ -204,41 +226,13 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       # Do nothing
     }
   }
-  
-  # ---------------------------------------------------------
-  # Add datatype conversions
-  # ---------------------------------------------------------
-
-  # FIXME: Add Nuxeo-required datatype conversions to
-  # the template database(s).
-  
+    
 
   # ######################################################################
   # Install and configure PostgreSQL using the EnterpriseDB-packaged
   # installer for non-Linux platforms (OS X, Windows ...)
   # ######################################################################
 
-  # ---------------------------------------------------------
-  # Obtain platform-specific values
-  # ---------------------------------------------------------
-
-  $system_temp_dir = $cspace_environment::tempdir::system_temp_directory
-    
-  case $os_family {
-    RedHat, Debian: {
-      $exec_paths = $cspace_environment::execpaths::linux_default_exec_paths
-      $os_bits = $cspace_environment::osbits::os_bits
-    }
-    # OS X
-    darwin: {
-      $exec_paths = $cspace_environment::execpaths::osx_default_exec_paths
-    }
-    # Microsoft Windows
-    windows: {
-    }
-    default: {
-    }
-  }
 
   # ---------------------------------------------------------
   # Download PostgreSQL installer
@@ -462,13 +456,71 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   #   default: {
   #   }
   # }
+
+
+  # ######################################################################
+  # Converge back to a single path here
+  # ######################################################################
   
   # ---------------------------------------------------------
   # Add datatype conversions
   # ---------------------------------------------------------
+  
+  $psql_cmd = 'psql -U postgres -d template1'
+  
+  # Function and associated datatype cast to convert integers to text
+  $int_txt_func    = 'CREATE FUNCTION pg_catalog.text(integer) RETURNS text STRICT IMMUTABLE LANGUAGE SQL AS \'SELECT textin(int4out($1));\';'
+  $int_txt_cast    = 'CREATE CAST (integer AS text) WITH FUNCTION pg_catalog.text(integer) AS IMPLICIT;'
+  $int_txt_comment = 'COMMENT ON FUNCTION pg_catalog.text(integer) IS \'convert integer to text\';'
+  
+  # Function and associated datatype cast to convert 'bigints' to text
+  $bigint_txt_func    = 'CREATE FUNCTION pg_catalog.text(bigint) RETURNS text STRICT IMMUTABLE LANGUAGE SQL AS \'SELECT textin(int8out($1));\';'
+  $bigint_txt_cast    = 'CREATE CAST (bigint AS text) WITH FUNCTION pg_catalog.text(bigint) AS IMPLICIT;'
+  $bigint_txt_comment = 'COMMENT ON FUNCTION pg_catalog.text(bigint) IS \'convert bigint to text\';'
+  
+  case $os_family {
+    RedHat, Debian: {
+      exec { 'Add integer-to-text datatype conversion function':
+        command   => "${psql_command} -c $int_txt_func",
+        cwd       => $system_temp_dir,
+        path      => $exec_paths,
+        logoutput => on_failure,
+        require   => [ 
+          Class[ 'postgresql::server' ],
+          Class[ 'postgresql::client' ],
+        ]
+      }
+      exec { 'Add integer-to-text datatype conversion cast':
+        command   => "${psql_command} -c $int_txt_cast",
+        cwd       => $system_temp_dir,
+        path      => $exec_paths,
+        logoutput => on_failure,
+        require   => [ 
+          Class[ 'postgresql::server' ],
+          Class[ 'postgresql::client' ],
+        ]
+      }
+      exec { 'Add integer-to-text datatype conversion comment':
+        command   => "${psql_command} -c $int_txt_comment",
+        cwd       => $system_temp_dir,
+        path      => $exec_paths,
+        logoutput => on_failure,
+        require   => [ 
+          Class[ 'postgresql::server' ],
+          Class[ 'postgresql::client' ],
+        ]
+      }
+    }
+    # OS X
+    darwin: {
+    }
+    # Microsoft Windows
+    windows: {
+    }
+    default: {
+    }
+  }
 
-  # FIXME: Add Nuxeo-required datatype conversions to
-  # the template database(s).
   
   
 }

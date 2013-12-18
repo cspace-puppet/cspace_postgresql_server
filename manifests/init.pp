@@ -469,20 +469,32 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   $psql_cmd = "psql -U ${superacct} -d template1"
   
   # Function and associated datatype cast to convert integers to text
-  $int_txt_func    = "CREATE FUNCTION pg_catalog.text(integer) RETURNS text STRICT IMMUTABLE LANGUAGE SQL AS 'SELECT textin(int4out(\\\$1));';"
-  $int_txt_cast    = 'CREATE CAST (integer AS text) WITH FUNCTION pg_catalog.text(integer) AS IMPLICIT;'
-  $int_txt_comment = 'COMMENT ON FUNCTION pg_catalog.text(integer) IS \'convert integer to text\';'
+  #
+  # TODO: The CREATE FUNCTION command is not idempotent; it will fail
+  # if a function with this name and type already exists. To drop the
+  # function and its dependent cast and comment, we could run
+  # 'DROP FUNCTION pg_catalog.text(integer) CASCADE;'
+  # and ignore failures, prior to 'CREATE FUNCTION ...'
+  #
+  # (Although the following double-quoted string contains no variables,
+  # and hence is flagged by puppet-lint, it works; change it only with care ...)
+  $int_txt_function = "CREATE FUNCTION pg_catalog.text(integer) RETURNS text STRICT IMMUTABLE LANGUAGE SQL AS 'SELECT textin(int4out(\\\$1));';"
+  $int_txt_cast     = 'CREATE CAST (integer AS text) WITH FUNCTION pg_catalog.text(integer) AS IMPLICIT;'
+  $int_txt_comment  = 'COMMENT ON FUNCTION pg_catalog.text(integer) IS \'convert integer to text\';'
   
   # Function and associated datatype cast to convert 'bigints' to text
-  $bigint_txt_func    = "CREATE FUNCTION pg_catalog.text(bigint) RETURNS text STRICT IMMUTABLE LANGUAGE SQL AS 'SELECT textin(int8out(\\\$1));';"
-  $bigint_txt_cast    = 'CREATE CAST (bigint AS text) WITH FUNCTION pg_catalog.text(bigint) AS IMPLICIT;'
-  $bigint_txt_comment = 'COMMENT ON FUNCTION pg_catalog.text(bigint) IS \'convert bigint to text\';'
+  #
+  # (See notes above, which apply equally to the command below.)
+  $bigint_txt_function = "CREATE FUNCTION pg_catalog.text(bigint) RETURNS text STRICT IMMUTABLE LANGUAGE SQL AS 'SELECT textin(int8out(\\\$1));';"
+  $bigint_txt_cast     = 'CREATE CAST (bigint AS text) WITH FUNCTION pg_catalog.text(bigint) AS IMPLICIT;'
+  $bigint_txt_comment  = 'COMMENT ON FUNCTION pg_catalog.text(bigint) IS \'convert bigint to text\';'
   
   notice( 'Adding Nuxeo-required datatype conversions to the database ...' )
   case $os_family {
     RedHat, Debian: {
+      # Integer-to-text conversion function, cast, and comment.
       exec { 'Add integer-to-text conversion function':
-        command   => "${psql_cmd} -c \"${int_txt_func}\"",
+        command   => "${psql_cmd} -c \"${int_txt_function}\"",
         cwd       => $system_temp_dir,
         path      => $exec_paths,
         user      => $superacct,
@@ -516,6 +528,42 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
           Exec[ 'Add integer-to-text conversion function' ],
         ]
       }
+      # Bigint-to-text conversion function, cast, and comment.
+      exec { 'Add bigint-to-text conversion function':
+        command   => "${psql_cmd} -c \"${bigint_txt_function}\"",
+        cwd       => $system_temp_dir,
+        path      => $exec_paths,
+        user      => $superacct,
+        logoutput => on_failure,
+        require   => [ 
+          Class[ 'postgresql::server' ],
+          Class[ 'postgresql::client' ],
+        ]
+      }
+      exec { 'Add bigint-to-text conversion cast':
+        command   => "${psql_cmd} -c \"${bigint_txt_cast}\"",
+        cwd       => $system_temp_dir,
+        path      => $exec_paths,
+        user      => $superacct,
+        logoutput => on_failure,
+        require   => [ 
+          Class[ 'postgresql::server' ],
+          Class[ 'postgresql::client' ],
+          Exec[ 'Add bigint-to-text conversion function' ],
+        ]
+      }
+      exec { 'Add bigint-to-text conversion comment':
+        command   => "${psql_cmd} -c \"${bigint_txt_comment}\"",
+        cwd       => $system_temp_dir,
+        path      => $exec_paths,
+        user      => $superacct,
+        logoutput => on_failure,
+        require   => [ 
+          Class[ 'postgresql::server' ],
+          Class[ 'postgresql::client' ],
+          Exec[ 'Add bigint-to-text conversion function' ],
+        ]
+      }      
     }
     # OS X
     darwin: {

@@ -482,7 +482,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   case $os_family {
     RedHat, Debian: {
       exec { 'Add integer-to-text conversion function':
-        command   => "${psql_cmd} -c ${int_txt_func}",
+        command   => "${psql_cmd} -c \"${int_txt_func}\"",
         cwd       => $system_temp_dir,
         path      => $exec_paths,
         logoutput => on_failure,
@@ -492,7 +492,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         ]
       }
       exec { 'Add integer-to-text conversion cast':
-        command   => "${psql_cmd} -c ${int_txt_cast}",
+        command   => "${psql_cmd} -c \"${int_txt_cast}\"",
         cwd       => $system_temp_dir,
         path      => $exec_paths,
         logoutput => on_failure,
@@ -502,7 +502,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         ]
       }
       exec { 'Add integer-to-text conversion comment':
-        command   => "${psql_cmd} -c ${int_txt_comment}",
+        command   => "${psql_cmd} -c \"${int_txt_comment}\"",
         cwd       => $system_temp_dir,
         path      => $exec_paths,
         logoutput => on_failure,

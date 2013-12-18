@@ -478,10 +478,11 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   $bigint_txt_cast    = 'CREATE CAST (bigint AS text) WITH FUNCTION pg_catalog.text(bigint) AS IMPLICIT;'
   $bigint_txt_comment = 'COMMENT ON FUNCTION pg_catalog.text(bigint) IS \'convert bigint to text\';'
   
+  notice( 'Adding Nuxeo-required datatype conversions to the database ...' )
   case $os_family {
     RedHat, Debian: {
-      exec { 'Add integer-to-text datatype conversion function':
-        command   => "${psql_command} -c $int_txt_func",
+      exec { 'Add integer-to-text conversion function':
+        command   => "${psql_cmd} -c ${int_txt_func}",
         cwd       => $system_temp_dir,
         path      => $exec_paths,
         logoutput => on_failure,
@@ -490,8 +491,8 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
           Class[ 'postgresql::client' ],
         ]
       }
-      exec { 'Add integer-to-text datatype conversion cast':
-        command   => "${psql_command} -c $int_txt_cast",
+      exec { 'Add integer-to-text conversion cast':
+        command   => "${psql_cmd} -c ${int_txt_cast}",
         cwd       => $system_temp_dir,
         path      => $exec_paths,
         logoutput => on_failure,
@@ -500,8 +501,8 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
           Class[ 'postgresql::client' ],
         ]
       }
-      exec { 'Add integer-to-text datatype conversion comment':
-        command   => "${psql_command} -c $int_txt_comment",
+      exec { 'Add integer-to-text conversion comment':
+        command   => "${psql_cmd} -c ${int_txt_comment}",
         cwd       => $system_temp_dir,
         path      => $exec_paths,
         logoutput => on_failure,

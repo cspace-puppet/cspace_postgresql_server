@@ -83,7 +83,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   # Obtain operating system family
   # ---------------------------------------------------------
   
-  $os_family       = $cspace_environment::osfamily::os_family
+  $os_family = $cspace_environment::osfamily::os_family
   
   # ---------------------------------------------------------
   # Obtain platform-specific values
@@ -115,6 +115,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   
   
   # ######################################################################
+  # Option 1:
   # Install and configure PostgreSQL using a Linux package manager,
   # via the 'puppetlabs-postgresql' Puppet module 
   # ######################################################################
@@ -123,8 +124,8 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
     RedHat, Debian: {
       notice( 'Setting global values to be used by installer ...' )
       class { 'postgresql::globals':
-        # Rather than specifying the PostgreSQL version on Linux distros,
-        # use the per-platform package manager defaults wherever available. 
+        # Rather than specifying the PostgreSQL version on Linux distros, use
+        # the per-distro-and-version package manager defaults wherever available. 
         # This will help ensure that the appropriate packages are available.
         # (That's why the 'version' attribute doesn't appear here.)
         encoding => 'UTF8',
@@ -134,7 +135,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       # By default, 'ensure => present', so instantiating the following
       # resource will install the PostgreSQL server.
       #
-      # Note: Attempting to set host-based access via the 'ipv4acls' attribute
+      # Note: Attempting to set host-based access en masse via the 'ipv4acls' attribute
       # together with 'pg_hba_conf_defaults => false' resulted in an error due
       # to missing fragment files when constructing pg_hba.conf. Thus, multiple
       # pg_hba_rule types have been used to configure that access, below.
@@ -230,6 +231,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
     
 
   # ######################################################################
+  # Option 2:
   # Install and configure PostgreSQL using the EnterpriseDB-packaged
   # installer for non-Linux platforms (OS X, Windows ...)
   # ######################################################################
@@ -260,6 +262,9 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   
   case $os_family {
     RedHat, Debian: {
+      # The following code block is commented out because, on these
+      # Linux platforms, the presence of PostgreSQL is ensured via
+      # Option 1, above.
       # if $os_bits == '64-bit' {
       #   $linux_extension = $linux_64bit_extension
       # } elsif $os_bits == '32-bit' {
@@ -340,6 +345,9 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   
   case $os_family {
     RedHat, Debian: {
+      # The following code block is commented out because, on these
+      # Linux platforms, the presence of PostgreSQL is ensured via
+      # Option 1, above.
       # $install_cmd = join(
       #   [
       #     "$system_temp_dir/${installer_filename}",
@@ -384,7 +392,9 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
           " --superaccount ${superacct} --superpassword ${superpw}",
         ]
       )
-      # FIXME: This code works but is commented out for now.
+      # FIXME: This code block works but is commented out for now
+      # due to incomplete handling of scenarios where PostgreSQL
+      # may already be present and/or running.
       # Uncomment only for further testing, or after we've
       # put code in place to detect whether PostgreSQL is present.
       #
@@ -453,6 +463,22 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   #   }
   #   # Microsoft Windows
   #   windows: {
+  #   }
+  #   default: {
+  #   }
+  # }
+  
+  # ---------------------------------------------------------
+  # Set shared memory settings (OS X only)
+  # ---------------------------------------------------------
+
+  # TODO: Add code to set up shared memory settings under OS X.
+  # (For details, see the readme file included on the EnterpriseDB
+  # disk image for installing PostgreSQL under OS X.)
+  
+  # case $os_family {
+  #   # OS X
+  #   darwin: {
   #   }
   #   default: {
   #   }
@@ -568,6 +594,10 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
     }
     # OS X
     darwin: {
+      # TODO: We may be able to add 'darwin' as a case to the code block above,
+      # as the mechanism for putting these datatype casts into place may
+      # potentially be identical to the one used under various Linux distros.
+      # This remains to be tested, however.
     }
     # Microsoft Windows
     windows: {

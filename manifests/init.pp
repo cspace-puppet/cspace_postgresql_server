@@ -36,7 +36,6 @@
 # Copyright 2013 Your name here, unless otherwise noted.
 #
 
-include cspace_environment::env
 include cspace_environment::execpaths
 include cspace_environment::osbits
 include cspace_environment::osfamily
@@ -76,6 +75,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   # Obtain database superuser name and password
   # ---------------------------------------------------------
 
+  include cspace_environment::env
   $superacct = $cspace_environment::env::cspace_env['DB_USER']
   $superpw   = $cspace_environment::env::cspace_env['DB_PASSWORD']
 
@@ -122,10 +122,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   
   case $os_family {
     RedHat, Debian: {
-      
-      notify{ 'Setting global values':
-        message => 'Setting global values to be used by PostgreSQL installer ...',
-      } ->
+      notice( 'Setting global values to be used by installer ...' )
       class { 'postgresql::globals':
         # Rather than specifying the PostgreSQL version on Linux distros, use
         # the per-distro-and-version package manager defaults wherever available. 
@@ -134,10 +131,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         encoding => 'UTF8',
         locale   => $locale,
       }
-      
-      notify{ 'Ensuring PostgreSQL server is present':
-        message => 'Ensuring that PostgreSQL server is present ...',
-      } ->
+      notice( 'Ensuring that PostgreSQL server is present ...' )
       # By default, 'ensure => present', so instantiating the following
       # resource will install the PostgreSQL server.
       #
@@ -151,16 +145,11 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         pg_hba_conf_defaults => false,
         postgres_password    => $superpw,
       }
-      
-      notify{ 'Ensuring PostgreSQL client is present':
-        message => 'Ensuring that PostgreSQL client is present ...',
-        before  => Class [ 'postgresql::client' ],
-      }
       # By default, 'ensure => present', so instantiating the following
       # resource will install 'psql', the CLI PostgreSQL client.
+      notice( 'Ensuring that \'psql\' PostgreSQL client is present ...' )
       class { 'postgresql::client':
       }
-      
     }
     default: {
       # Do nothing
@@ -176,9 +165,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   
   case $os_family {
     RedHat, Debian: {
-      notify{ 'Ensuring PostgreSQL host-based access rules':
-        message => 'Ensuring additional PostgreSQL server host-based access rules, if any ...',
-      } ->
+      notice( 'Ensuring additional PostgreSQL server host-based access rules, if any ...' )
       # Providing 'ident'-based access for the 'postgres' user appears to be required
       # by the puppetlabs-postgresql module for validating the database connection. (It may also
       # be required for setting the 'postgres' user's password, per postgresql::server::passwd.)
@@ -232,9 +219,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
 
   case $os_family {
     RedHat, Debian: {
-      notify{ 'Ensuring PostgreSQL configuration settings':
-        message => 'Ensuring CollectionSpace-relevant PostgreSQL configuration settings ...',
-      } ->
+      notice( 'Ensuring CollectionSpace-relevant PostgreSQL configuration settings ...' )
       postgresql::server::config_entry { 'max_connections':
         value   => 32, # Conservative default; could be changed to 64 
       }
@@ -301,11 +286,8 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
     }
     # OS X
     darwin: {
+      notice( 'Downloading EnterpriseDB PostgreSQL installer ...' )
       $installer_filename   = "${distribution_filename}-${osx_extension}"
-      notify{ 'Downloading PostgreSQL installer':
-        message => 'Downloading EnterpriseDB PostgreSQL installer ...',
-        before  => Class [ 'postgresql::server::config_entry' ],
-      } ->
       exec { 'Download PostgreSQL installer':
         command   => "wget ${postgresql_repository_dir}/${installer_filename}",
         cwd       => $system_temp_dir,
@@ -373,9 +355,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       #     " --superaccount ${superacct} --superpassword ${superpw}",
       #   ]
       # )
-      # notify{ 'Running PostgreSQL installer':
-      #   message => 'Running the EnterpriseDB PostgreSQL installer ...',
-      # } ->
+      # notice( 'Running the EnterpriseDB PostgreSQL installer ...' )
       # exec { 'Perform unattended installation of PostgreSQL':
       #   command => $install_cmd,
       #   path    => $exec_paths,
@@ -387,9 +367,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
     }
     # OS X
     darwin: {
-      notify{ 'Mounting installer disk image':
-        message => 'Mounting the EnterpriseDB PostgreSQL installer disk image ...',
-      } ->
+      notice( 'Mounting EnterpriseDB PostgreSQL installer disk image ...' )
       # The OS X installer comes as a disk image (.dmg) file, which must first be
       # mounted as a volume before the installer it contains can be run.
       exec { 'Mount PostgreSQL installer disk image':
@@ -420,9 +398,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       # Uncomment only for further testing, or after we've
       # put code in place to detect whether PostgreSQL is present.
       #
-      # notify{ 'Running PostgreSQL installer':
-      #   message => 'Running the EnterpriseDB PostgreSQL installer ...',
-      # } ->
+      # notice( 'Running the EnterpriseDB PostgreSQL installer ...' )
       # exec { 'Perform unattended installation of PostgreSQL':
       #   command => $install_cmd,
       #   path    => $exec_paths,
@@ -540,9 +516,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   $bigint_txt_cast     = 'CREATE CAST (bigint AS text) WITH FUNCTION pg_catalog.text(bigint) AS IMPLICIT;'
   $bigint_txt_comment  = 'COMMENT ON FUNCTION pg_catalog.text(bigint) IS \'convert bigint to text\';'
   
-  notify{ 'Adding datatype conversions':
-    message => 'Adding Nuxeo-required datatype conversions to the database ...',
-  } ->
+  notice( 'Adding Nuxeo-required datatype conversions to the database ...' )
   case $os_family {
     RedHat, Debian: {
       # Integer-to-text conversion function, cast, and comment.

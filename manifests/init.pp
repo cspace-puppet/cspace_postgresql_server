@@ -122,7 +122,11 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   
   case $os_family {
     RedHat, Debian: {
-      notice( 'Setting global values to be used by installer ...' )
+      
+      notify{ 'Setting global values':
+        message => 'Setting global values to be used by PostgreSQL installer ...',
+        before  => Class [ 'postgresql::globals' ],
+      }
       class { 'postgresql::globals':
         # Rather than specifying the PostgreSQL version on Linux distros, use
         # the per-distro-and-version package manager defaults wherever available. 
@@ -131,7 +135,11 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         encoding => 'UTF8',
         locale   => $locale,
       }
-      notice( 'Ensuring that PostgreSQL server is present ...' )
+      
+      notify{ 'Ensuring PostgreSQL server is present':
+        message => 'Ensuring that PostgreSQL server is present ...',
+        before  => Class [ 'postgresql::server' ],
+      }
       # By default, 'ensure => present', so instantiating the following
       # resource will install the PostgreSQL server.
       #
@@ -145,11 +153,16 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         pg_hba_conf_defaults => false,
         postgres_password    => $superpw,
       }
+      
+      notify{ 'Ensuring PostgreSQL client is present':
+        message => 'Ensuring that PostgreSQL client is present ...',
+        before  => Class [ 'postgresql::client' ],
+      }
       # By default, 'ensure => present', so instantiating the following
       # resource will install 'psql', the CLI PostgreSQL client.
-      notice( 'Ensuring that \'psql\' PostgreSQL client is present ...' )
       class { 'postgresql::client':
       }
+      
     }
     default: {
       # Do nothing
@@ -165,7 +178,10 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   
   case $os_family {
     RedHat, Debian: {
-      notice( 'Ensuring additional PostgreSQL server host-based access rules, if any ...' )
+      notify{ 'Ensuring PostgreSQL host-based access rules':
+        message => 'Ensuring additional PostgreSQL server host-based access rules, if any ...',
+        before  => Class [ 'postgresql::server::pg_hba_rule' ],
+      }
       # Providing 'ident'-based access for the 'postgres' user appears to be required
       # by the puppetlabs-postgresql module for validating the database connection. (It may also
       # be required for setting the 'postgres' user's password, per postgresql::server::passwd.)
@@ -219,7 +235,10 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
 
   case $os_family {
     RedHat, Debian: {
-      notice( 'Ensuring CollectionSpace-relevant PostgreSQL configuration settings ...' )
+      notify{ 'Ensuring PostgreSQL configuration settings':
+        message => 'Ensuring CollectionSpace-relevant PostgreSQL configuration settings ...',
+        before  => Class [ 'postgresql::server::config_entry' ],
+      }
       postgresql::server::config_entry { 'max_connections':
         value   => 32, # Conservative default; could be changed to 64 
       }

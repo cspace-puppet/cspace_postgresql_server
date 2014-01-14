@@ -123,17 +123,16 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   case $os_family {
     RedHat, Debian: {
       
-      notify{ 'Setting global values':
-        message => 'Setting global values to be used by PostgreSQL installer ...',
-      } ->
-      class { 'postgresql::globals':
-        # Rather than specifying the PostgreSQL version on Linux distros, use
-        # the per-distro-and-version package manager defaults wherever available. 
-        # This will help ensure that the appropriate packages are available.
-        # (That's why the 'version' attribute doesn't appear here.)
-        encoding => 'UTF8',
-        locale   => $locale,
-      } ->
+      # notify{ 'Setting global values':
+      #   message => 'Setting global values to be used by PostgreSQL installer ...',
+      # } ->
+      # class { 'postgresql::globals':
+      #   # Rather than specifying the PostgreSQL version on Linux distros, use
+      #   # the per-distro-and-version package manager defaults wherever available. 
+      #   # This will help ensure that the appropriate packages are available.
+      #   # (That's why the 'version' attribute doesn't appear here.)
+      # }
+      
       notify{ 'Ensuring PostgreSQL server is present':
         message => 'Ensuring that PostgreSQL server is present ...',
       } ->
@@ -145,11 +144,14 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       # to missing fragment files when constructing pg_hba.conf. Thus, multiple
       # pg_hba_rule types have been used to configure that access, below.
       class { 'postgresql::server':
+        encoding => 'UTF8',
+        locale   => $locale,
         # Disables the default set of host-based authentication settings,
         # since we're setting CollectionSpace-relevant access rules below.
         pg_hba_conf_defaults => false,
         postgres_password    => $superpw,
-      } ->
+      }
+      
       notify{ 'Ensuring PostgreSQL client is present':
         message => 'Ensuring that PostgreSQL client is present ...',
         before  => Class [ 'postgresql::client' ],

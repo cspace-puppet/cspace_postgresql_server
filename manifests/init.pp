@@ -45,7 +45,7 @@ include postgresql::globals
 include postgresql::server
 include stdlib # for 'join()'
 
-class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US' ) {
+class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US.UTF8' ) {
 
   # ---------------------------------------------------------
   # Validate parameters

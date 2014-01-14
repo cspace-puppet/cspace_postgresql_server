@@ -45,7 +45,7 @@ include postgresql::globals
 include postgresql::server
 include stdlib # for 'join()'
 
-class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US.UTF-8' ) {
+class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US' ) {
 
   # ---------------------------------------------------------
   # Validate parameters
@@ -75,9 +75,9 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   # Obtain database superuser name and password
   # ---------------------------------------------------------
 
-  include cspace_environment::env
-  $superacct = $cspace_environment::env::cspace_env['DB_USER']
-  $superpw   = $cspace_environment::env::cspace_env['DB_PASSWORD']
+  include cspace_user::env
+  $superacct = $cspace_user::env::cspace_env['DB_USER']
+  $superpw   = $cspace_user::env::cspace_env['DB_PASSWORD']
 
   # ---------------------------------------------------------
   # Obtain operating system family
@@ -133,8 +133,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         # (That's why the 'version' attribute doesn't appear here.)
         encoding => 'UTF8',
         locale   => $locale,
-      }
-      
+      } ->
       notify{ 'Ensuring PostgreSQL server is present':
         message => 'Ensuring that PostgreSQL server is present ...',
       } ->
@@ -150,8 +149,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         # since we're setting CollectionSpace-relevant access rules below.
         pg_hba_conf_defaults => false,
         postgres_password    => $superpw,
-      }
-      
+      } ->
       notify{ 'Ensuring PostgreSQL client is present':
         message => 'Ensuring that PostgreSQL client is present ...',
         before  => Class [ 'postgresql::client' ],

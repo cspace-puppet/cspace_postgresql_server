@@ -10,11 +10,11 @@
 # http://docs.puppetlabs.com/guides/tests_smoke.html
 #
 
-include cspace_environment::env
 include cspace_environment::execpaths
 include cspace_environment::osbits
 include cspace_environment::osfamily
 include cspace_environment::tempdir
+include cspace_user::env
 include stdlib
 
 class { 'cspace_postgresql_server': 

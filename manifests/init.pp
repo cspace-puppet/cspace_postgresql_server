@@ -241,7 +241,6 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       } ->
       postgresql::server::config_entry { 'max_connections':
         value   => 32, # Conservative default; could be changed to 64 
-        require => Class [ 'postgresql::server' ],
       }
     }
     default: {

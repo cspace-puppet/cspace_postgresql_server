@@ -45,7 +45,7 @@ include postgresql::globals
 include postgresql::server
 include stdlib # for 'join()'
 
-class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US.UTF8' ) {
+class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US.utf8' ) {
 
   # ---------------------------------------------------------
   # Validate parameters
@@ -53,8 +53,8 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
 
   # TODO: Can further tighten these regexes as needed
   
-  if (! locale =~ /^.*?\.UTF8$/) {
-    fail( "Unrecognized locale ${locale}" )
+  if (! locale =~ /^.*?\.utf8$/) {
+    fail( "Invalid locale ${locale}: locale must support UTF-8 encoding" )
   }
 
   if (! $postgresql_version =~ /^\d+\.\d+\.\d+$/) and (! $postgresql_version =~ /^\d+\.\d+$/) {

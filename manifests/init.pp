@@ -60,6 +60,10 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   if (! $postgresql_version =~ /^\d+\.\d+\.\d+$/) and (! $postgresql_version =~ /^\d+\.\d+$/) {
     fail( "Unrecognized PostgreSQL version ${postgresql_version}" )
   }
+  
+  # TODO: Add a validation check for the provided locale, perhaps by
+  # comparing it against the list of available locales returned by
+  # 'locale -a' on Linux and OS X. This might be done in a (Ruby) function.
     
   # ---------------------------------------------------------
   # Obtain major version number
@@ -189,7 +193,6 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         database    => 'all',
         user        => 'all',
         auth_method => 'ident',
-        require     => Class [ 'postgresql::server' ],
       }
       postgresql::server::pg_hba_rule { 'superuser via IPv4':
         order       => '40',
@@ -199,7 +202,6 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         user        => $superacct,
         address     => 'samehost',
         auth_method => 'md5',
-        require     => Class [ 'postgresql::server' ],
       }
       postgresql::server::pg_hba_rule { 'nuxeo user via IPv4':
         order       => '60',
@@ -209,7 +211,6 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         user        => 'nuxeo',
         address     => 'samehost',
         auth_method => 'md5',
-        require     => Class [ 'postgresql::server' ],
       }
       postgresql::server::pg_hba_rule { 'cspace user via IPv4':
         order       => '80',
@@ -219,7 +220,6 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         user        => 'cspace',
         address     => 'samehost',
         auth_method => 'md5',
-        require     => Class [ 'postgresql::server' ],
       }
     }
     default: {

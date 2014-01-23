@@ -45,7 +45,7 @@ include postgresql::globals
 include postgresql::server
 include stdlib # for 'join()'
 
-class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US.utf8' ) {
+class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US.UTF-8' ) {
 
   # ---------------------------------------------------------
   # Validate parameters
@@ -127,15 +127,17 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   case $os_family {
     RedHat, Debian: {
       
-      # notify{ 'Setting global values':
-      #   message => 'Setting global values to be used by PostgreSQL installer ...',
-      # } ->
-      # class { 'postgresql::globals':
-      #   # Rather than specifying the PostgreSQL version on Linux distros, use
-      #   # the per-distro-and-version package manager defaults wherever available. 
-      #   # This will help ensure that the appropriate packages are available.
-      #   # (That's why the 'version' attribute doesn't appear here.)
-      # }
+      notify{ 'Setting global values':
+        message => 'Setting global values to be used by PostgreSQL installer ...',
+      } ->
+      class { 'postgresql::globals':
+        # Rather than specifying the PostgreSQL version on Linux distros, use
+        # the per-distro-and-version package manager defaults wherever available. 
+        # This will help ensure that the appropriate packages are available.
+        # (That's why the 'version' attribute doesn't appear here.)
+        encoding => 'UTF8',
+        locale   => $locale,
+      }
       
       notify{ 'Ensuring PostgreSQL server is present':
         message => 'Ensuring that PostgreSQL server is present ...',

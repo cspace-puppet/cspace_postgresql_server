@@ -129,7 +129,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       
       notify{ 'Setting global values':
         message => 'Setting global values to be used by PostgreSQL installer ...',
-      } ->
+      }
       class { 'postgresql::globals':
         # Rather than specifying the PostgreSQL version on Linux distros, use
         # the per-distro-and-version package manager defaults wherever available. 
@@ -137,6 +137,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         # (That's why the 'version' attribute doesn't appear here.)
         encoding => 'UTF8',
         locale   => $locale,
+        require  => Notify[ 'Setting global values' ],
       }
       
       notify{ 'Ensuring PostgreSQL server is present':
@@ -184,7 +185,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
     RedHat, Debian: {
       notify{ 'Ensuring PostgreSQL host-based access rules':
         message => 'Ensuring additional PostgreSQL server host-based access rules, if any ...',
-      } ->
+      }
       # Providing 'ident'-based access for the 'postgres' user appears to be required
       # by the puppetlabs-postgresql module for validating the database connection. (It may also
       # be required for setting the 'postgres' user's password, per postgresql::server::passwd.)
@@ -195,6 +196,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         database    => 'all',
         user        => 'all',
         auth_method => 'ident',
+        require     => Notify[ 'Ensuring PostgreSQL host-based access rules' ],
       }
       postgresql::server::pg_hba_rule { 'superuser via IPv4':
         order       => '40',
@@ -204,6 +206,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         user        => $superacct,
         address     => 'samehost',
         auth_method => 'md5',
+        require     => Notify[ 'Ensuring PostgreSQL host-based access rules' ],
       }
       postgresql::server::pg_hba_rule { 'nuxeo user via IPv4':
         order       => '60',
@@ -213,6 +216,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         user        => 'nuxeo',
         address     => 'samehost',
         auth_method => 'md5',
+        require     => Notify[ 'Ensuring PostgreSQL host-based access rules' ],
       }
       postgresql::server::pg_hba_rule { 'cspace user via IPv4':
         order       => '80',
@@ -222,6 +226,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         user        => 'cspace',
         address     => 'samehost',
         auth_method => 'md5',
+        require     => Notify[ 'Ensuring PostgreSQL host-based access rules' ],
       }
     }
     default: {
@@ -548,7 +553,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   
   notify{ 'Adding datatype conversions':
     message => 'Adding Nuxeo-required datatype conversions to the database ...',
-  } ->
+  }
   case $os_family {
     RedHat, Debian: {
       # Integer-to-text conversion function, cast, and comment.
@@ -561,6 +566,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         require   => [ 
           Class[ 'postgresql::server' ],
           Class[ 'postgresql::client' ],
+          Notify[ 'Adding datatype conversions' ],
         ]
       }
       exec { 'Add integer-to-text conversion cast':
@@ -572,6 +578,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         require   => [ 
           Class[ 'postgresql::server' ],
           Class[ 'postgresql::client' ],
+          Notify[ 'Adding datatype conversions' ],
           Exec[ 'Add integer-to-text conversion function' ],
         ]
       }
@@ -584,6 +591,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         require   => [ 
           Class[ 'postgresql::server' ],
           Class[ 'postgresql::client' ],
+          Notify[ 'Adding datatype conversions' ],
           Exec[ 'Add integer-to-text conversion function' ],
         ]
       }
@@ -597,6 +605,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         require   => [ 
           Class[ 'postgresql::server' ],
           Class[ 'postgresql::client' ],
+          Notify[ 'Adding datatype conversions' ],
         ]
       }
       exec { 'Add bigint-to-text conversion cast':
@@ -608,6 +617,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         require   => [ 
           Class[ 'postgresql::server' ],
           Class[ 'postgresql::client' ],
+          Notify[ 'Adding datatype conversions' ],
           Exec[ 'Add bigint-to-text conversion function' ],
         ]
       }
@@ -620,6 +630,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         require   => [ 
           Class[ 'postgresql::server' ],
           Class[ 'postgresql::client' ],
+          Notify[ 'Adding datatype conversions' ],
           Exec[ 'Add bigint-to-text conversion function' ],
         ]
       }      

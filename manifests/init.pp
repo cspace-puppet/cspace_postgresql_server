@@ -151,13 +151,14 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       # to missing fragment files when constructing pg_hba.conf. Thus, multiple
       # pg_hba_rule types have been used to configure that access, below.
       class { 'postgresql::server':
-        encoding => 'UTF8',
-        locale   => $locale,
-        # Disables the default set of host-based authentication settings,
-        # since we're setting CollectionSpace-relevant access rules below.
+        encoding             => 'UTF8',
+        locale               => $locale,
+        # The following attribute disables the default set of host-based
+        # authentication settings, since we're setting CollectionSpace-relevant
+        # host-based access rules below.
         pg_hba_conf_defaults => false,
         postgres_password    => $superpw,
-        require => Notify[ 'Ensuring PostgreSQL server is present' ],
+        require              => Notify[ 'Ensuring PostgreSQL server is present' ],
       }
       
       notify{ 'Ensuring PostgreSQL client is present':
@@ -191,7 +192,6 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
     RedHat, Debian: {
       notify{ 'Ensuring PostgreSQL host-based access rules':
         message => 'Ensuring additional PostgreSQL server host-based access rules, if any ...',
-        require => Class [ 'postgresql::server' ],
       }
       # Providing 'ident'-based access for the 'postgres' user appears to be required
       # by the puppetlabs-postgresql module for validating the database connection. (It may also
@@ -257,8 +257,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
     RedHat, Debian: {
       notify{ 'Ensuring PostgreSQL configuration settings':
         message => 'Ensuring CollectionSpace-relevant PostgreSQL configuration settings ...',
-        require => Class [ 'postgresql::server' ],
-      } ->
+      }
       postgresql::server::config_entry { 'max_connections':
         value   => 32, # Conservative default; could be changed to 64 
         require => Notify[ 'Ensuring PostgreSQL configuration settings' ],
@@ -329,14 +328,14 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       $installer_filename   = "${distribution_filename}-${osx_extension}"
       notify{ 'Downloading PostgreSQL installer':
         message => 'Downloading EnterpriseDB PostgreSQL installer ...',
-        before  => Class [ 'postgresql::server::config_entry' ],
-      } ->
+      }
       exec { 'Download PostgreSQL installer':
         command   => "wget ${postgresql_repository_dir}/${installer_filename}",
         cwd       => $system_temp_dir,
         creates   => "${system_temp_dir}/${installer_filename}",
         path      => $exec_paths,
         logoutput => on_failure,
+        require   => Notify [ 'Downloading PostgreSQL installer' ]
       }
     }
     # Microsoft Windows

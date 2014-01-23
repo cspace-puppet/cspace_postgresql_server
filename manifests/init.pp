@@ -142,7 +142,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       
       notify{ 'Ensuring PostgreSQL server is present':
         message => 'Ensuring that PostgreSQL server is present ...',
-      } ->
+      }
       # By default, 'ensure => present', so instantiating the following
       # resource will install the PostgreSQL server.
       #
@@ -157,15 +157,16 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         # since we're setting CollectionSpace-relevant access rules below.
         pg_hba_conf_defaults => false,
         postgres_password    => $superpw,
+        require => Notify[ 'Ensuring PostgreSQL server is present' ],
       }
       
       notify{ 'Ensuring PostgreSQL client is present':
         message => 'Ensuring that PostgreSQL client is present ...',
-        before  => Class [ 'postgresql::client' ],
       }
       # By default, 'ensure => present', so instantiating the following
       # resource will install 'psql', the CLI PostgreSQL client.
       class { 'postgresql::client':
+        require => Notify[ 'Ensuring PostgreSQL client is present' ],
       }
       
     }
@@ -177,6 +178,11 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   # ---------------------------------------------------------
   # Configure host-based authentication settings
   # ---------------------------------------------------------
+  
+  # The following resources are platform-specific because they rely on
+  # capabilities of the 'puppetlabs-postgresql' package, which in turn
+  # appears to currently only support Linux platforms.
+  # Comparable configuration of OS X and Windows systems takes place below.
 
   # TODO: Add any additional access rules required, such as
   # rules required to support local or remote reporting, etc.
@@ -185,6 +191,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
     RedHat, Debian: {
       notify{ 'Ensuring PostgreSQL host-based access rules':
         message => 'Ensuring additional PostgreSQL server host-based access rules, if any ...',
+        require => Class [ 'postgresql::server' ],
       }
       # Providing 'ident'-based access for the 'postgres' user appears to be required
       # by the puppetlabs-postgresql module for validating the database connection. (It may also
@@ -238,6 +245,11 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   # Configure main PostgreSQL settings
   # ---------------------------------------------------------
 
+  # The following resources are platform-specific because they rely on
+  # capabilities of the 'puppetlabs-postgresql' package, which in turn
+  # appears to currently only support Linux platforms.
+  # Comparable configuration of OS X and Windows systems takes place below.
+
   # TODO: Change additional settings beyond those below, as
   # required for database tuning or other implementation-specific purposes.
 
@@ -245,9 +257,11 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
     RedHat, Debian: {
       notify{ 'Ensuring PostgreSQL configuration settings':
         message => 'Ensuring CollectionSpace-relevant PostgreSQL configuration settings ...',
+        require => Class [ 'postgresql::server' ],
       } ->
       postgresql::server::config_entry { 'max_connections':
         value   => 32, # Conservative default; could be changed to 64 
+        require => Notify[ 'Ensuring PostgreSQL configuration settings' ],
       }
     }
     default: {
@@ -374,8 +388,9 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   
   case $os_family {
     RedHat, Debian: {
-      # The following code block is commented out because, on these
-      # Linux platforms, the presence of PostgreSQL is ensured via
+      # The following code block, although formerly tested as working
+      # (at least on Fedora 18), is commented out because, on these
+      # two Linux platforms, the presence of PostgreSQL is ensured via
       # Option 1, above.
       # $install_cmd = join(
       #   [
@@ -527,6 +542,10 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   # ---------------------------------------------------------
   # Add datatype conversions
   # ---------------------------------------------------------
+  
+  # The resources in this section add two datatype conversions
+  # required by Nuxeo. Each are implemented via a combination
+  # of a function, cast, and function comment.
   
   $psql_cmd = "psql -U ${superacct} -d template1"
   

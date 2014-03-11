@@ -313,14 +313,16 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       # }
       # $installer_filename   = "${distribution_filename}-${linux_extension}"
       # exec { 'Download PostgreSQL installer':
-      #   command => "wget ${postgresql_repository_dir}/${installer_filename}",
-      #   cwd     => $system_temp_dir,
-      #   creates => "${system_temp_dir}/${installer_filename}",
-      #   path    => $exec_paths,
+      #   command   => "wget ${postgresql_repository_dir}/${installer_filename}",
+      #   cwd       => $system_temp_dir,
+      #   creates   => "${system_temp_dir}/${installer_filename}",
+      #   path      => $exec_paths,
+      #   logoutput => on_failure,      
       # }
       # exec { 'Set executable permissions on PostgreSQL installer':
-      #   command => "chmod ug+x ${system_temp_dir}/${installer_filename}",
-      #   path    => $exec_paths,
+      #   command   => "chmod ug+x ${system_temp_dir}/${installer_filename}",
+      #   path      => $exec_paths,
+      #   logoutput => on_failure,
       # }
     }
     # OS X
@@ -402,9 +404,10 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       #   message => 'Running the EnterpriseDB PostgreSQL installer ...',
       # } ->
       # exec { 'Perform unattended installation of PostgreSQL':
-      #   command => $install_cmd,
-      #   path    => $exec_paths,
-      #   require => [
+      #   command   => $install_cmd,
+      #   path      => $exec_paths,
+      #   logoutput => on_failure,
+      #   require   => [
       #     Exec[ 'Download PostgreSQL installer' ],
       #     Exec[ 'Set executable permissions on PostgreSQL installer' ],
       #   ]
@@ -449,9 +452,10 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       #   message => 'Running the EnterpriseDB PostgreSQL installer ...',
       # } ->
       # exec { 'Perform unattended installation of PostgreSQL':
-      #   command => $install_cmd,
-      #   path    => $exec_paths,
-      #   require => Exec[ 'Mount PostgreSQL installer disk image' ]
+      #   command   => $install_cmd,
+      #   path      => $exec_paths,
+      #   logoutput => on_failure,
+      #   require   => Exec[ 'Mount PostgreSQL installer disk image' ]
       # }
       #
       # Unmounting of the installer volume, following installation,
@@ -461,10 +465,11 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       # to be scraped from 'hdiutil info' as '/dev/disk{diskidentifier}'
       #
       # exec { 'Unmount PostgreSQL installer disk image':
-      #   command => "hdiutil detach ${devicename}",
-      #   cwd     => $system_temp_dir,
-      #   path    => $exec_paths,
-      #   require => [
+      #   command   => "hdiutil detach ${devicename}",
+      #   cwd       => $system_temp_dir,
+      #   path      => $exec_paths,
+      #   logoutput => on_failure,
+      #   require   => [
       #     Exec[ 'Open PostgreSQL installer disk image' ],
       #     Exec[ 'Perform unattended installation of PostgreSQL' ],
       #   ]

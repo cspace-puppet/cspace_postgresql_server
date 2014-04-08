@@ -77,11 +77,15 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
 
   # ---------------------------------------------------------
   # Obtain database superuser name and password
+  #
+  # This superuser will be given many, but not all, of
+  # the privileges of the default superuser (the user
+  # whose default name is 'postgres').
   # ---------------------------------------------------------
 
   include cspace_user::env
-  $superacct = $cspace_user::env::cspace_env['DB_USER']
-  $superpw   = $cspace_user::env::cspace_env['DB_PASSWORD']
+  $superacct = $cspace_user::env::cspace_env['DB_CSADMIN_USER']
+  $superpw   = $cspace_user::env::cspace_env['DB_CSADMIN_PASSWORD']
 
   # ---------------------------------------------------------
   # Obtain operating system family
@@ -177,6 +181,20 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   }
   
   # ---------------------------------------------------------
+  # Create a CollectionSpace administration database user
+  # ---------------------------------------------------------
+  
+  postgresql::server::role { 'Creating CollectionSpace administrator database account':
+    password_hash => postgresql_password( $superacct, $superpw ),
+    username      => $superacct,
+    login         => true,
+    superuser     => true,
+    createdb      => false,
+    createrole    => false,
+    replication   => false,
+  }
+  
+  # ---------------------------------------------------------
   # Configure host-based authentication settings
   # ---------------------------------------------------------
   
@@ -213,7 +231,10 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         user        => $superacct,
         address     => 'samehost',
         auth_method => 'md5',
-        require     => Notify[ 'Ensuring PostgreSQL host-based access rules' ],
+        require     => [
+            Notify[ 'Ensuring PostgreSQL host-based access rules' ],
+            Class[ 'Postgresql::server::role' ],
+        ]
       }
       postgresql::server::pg_hba_rule { 'nuxeo user via IPv4':
         order       => '60',
@@ -403,13 +424,16 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       # notify{ 'Running PostgreSQL installer':
       #   message => 'Running the EnterpriseDB PostgreSQL installer ...',
       # } ->
+      # TODO: Need to add a 'require' to the following
+      # 'exec' resource, on the resource that creates the
+      # CollectionSpace admin user database account:
       # exec { 'Perform unattended installation of PostgreSQL':
       #   command   => $install_cmd,
       #   path      => $exec_paths,
       #   logoutput => on_failure,
       #   require   => [
       #     Exec[ 'Download PostgreSQL installer' ],
-      #     Exec[ 'Set executable permissions on PostgreSQL installer' ],
+      #     Exec[ 'Set executable permissions on PostgreSQL installer' ],      
       #   ]
       # }
     }
@@ -451,6 +475,9 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       # notify{ 'Running PostgreSQL installer':
       #   message => 'Running the EnterpriseDB PostgreSQL installer ...',
       # } ->
+      # TODO: Need to add a 'require' to the following
+      # 'exec' resource, on the resource that creates the
+      # CollectionSpace admin user database account:
       # exec { 'Perform unattended installation of PostgreSQL':
       #   command   => $install_cmd,
       #   path      => $exec_paths,
@@ -481,6 +508,12 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
     default: {
     }
   }
+  
+  # ---------------------------------------------------------
+  # Create a CollectionSpace administration database user
+  # ---------------------------------------------------------
+  
+  # TODO: Add code to complete this stub section. 
   
   # ---------------------------------------------------------
   # Configure host-based authentication settings

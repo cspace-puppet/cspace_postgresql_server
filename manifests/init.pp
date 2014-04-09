@@ -128,6 +128,10 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   # via the 'puppetlabs-postgresql' Puppet module 
   # ######################################################################
   
+  # ---------------------------------------------------------
+  # Install the PostgreSQL server
+  # ---------------------------------------------------------
+  
   case $os_family {
     RedHat, Debian: {
       
@@ -164,7 +168,20 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         postgres_password    => $superpw,
         require              => Notify[ 'Ensuring PostgreSQL server is present' ],
       }
-      
+            
+    }
+    default: {
+      # Do nothing
+    }
+  }
+  
+  # ---------------------------------------------------------
+  # Install the PostgreSQL client ('psql')
+  # ---------------------------------------------------------
+  
+  case $os_family {
+    RedHat, Debian: {
+  
       notify{ 'Ensuring PostgreSQL client is present':
         message => 'Ensuring that PostgreSQL client is present ...',
       }
@@ -173,27 +190,12 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       class { 'postgresql::client':
         require => Notify[ 'Ensuring PostgreSQL client is present' ],
       }
-      
     }
     default: {
       # Do nothing
     }
   }
-  
-  # ---------------------------------------------------------
-  # Create a CollectionSpace administration database user
-  # ---------------------------------------------------------
-  
-  postgresql::server::role { 'Creating CollectionSpace administrator database account':
-    password_hash => postgresql_password( $superacct, $superpw ),
-    username      => $superacct,
-    login         => true,
-    superuser     => true,
-    createdb      => false,
-    createrole    => false,
-    replication   => false,
-  }
-  
+    
   # ---------------------------------------------------------
   # Configure host-based authentication settings
   # ---------------------------------------------------------
@@ -211,7 +213,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       notify{ 'Ensuring PostgreSQL host-based access rules':
         message => 'Ensuring additional PostgreSQL server host-based access rules, if any ...',
       }
-      # Providing 'ident'-based access for the 'postgres' user appears to be required
+      # Providing 'ident'-based access for the default 'postgres' user appears to be required
       # by the puppetlabs-postgresql module for validating the database connection. (It may also
       # be required for setting the 'postgres' user's password, per postgresql::server::passwd.)
       postgresql::server::pg_hba_rule { 'TYPE  DATABASE  USER  ADDRESS  METHOD':
@@ -222,6 +224,9 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         user        => 'all',
         auth_method => 'ident',
         require     => Notify[ 'Ensuring PostgreSQL host-based access rules' ],
+      } ->
+      notify{ 'Enabled ident access':
+        message => 'Enabled ident access to PostgreSQL server over local connections.',
       }
       postgresql::server::pg_hba_rule { 'superuser via IPv4':
         order       => '40',
@@ -233,11 +238,20 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         auth_method => 'md5',
         require     => [
             Notify[ 'Ensuring PostgreSQL host-based access rules' ],
-            Class[ 'Postgresql::server::role' ],
         ]
       }
-      postgresql::server::pg_hba_rule { 'nuxeo user via IPv4':
+      postgresql::server::pg_hba_rule { 'cspace user via IPv4':
         order       => '60',
+        description => '\'cspace\' user can access \'cspace\' database via IPv4 from localhost',
+        type        => 'host',
+        database    => 'cspace',
+        user        => 'cspace',
+        address     => 'samehost',
+        auth_method => 'md5',
+        require     => Notify[ 'Ensuring PostgreSQL host-based access rules' ],
+      }
+      postgresql::server::pg_hba_rule { 'nuxeo user via IPv4':
+        order       => '80',
         description => '\'nuxeo\' user can access all databases via IPv4 from localhost',
         type        => 'host',
         database    => 'all',
@@ -246,15 +260,35 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         auth_method => 'md5',
         require     => Notify[ 'Ensuring PostgreSQL host-based access rules' ],
       }
-      postgresql::server::pg_hba_rule { 'cspace user via IPv4':
-        order       => '80',
-        description => '\'cspace\' user can access \'cspace\' database via IPv4 from localhost',
-        type        => 'host',
-        database    => 'cspace',
-        user        => 'cspace',
-        address     => 'samehost',
-        auth_method => 'md5',
-        require     => Notify[ 'Ensuring PostgreSQL host-based access rules' ],
+    }
+    default: {
+      # Do nothing
+    }
+  }
+  
+  # ---------------------------------------------------------
+  # Create a CollectionSpace administration database user
+  # ---------------------------------------------------------
+
+  notify{ 'Creating a CollectionSpace admin user in the database':
+    message => 'Creating a CollectionSpace administrator user in the database ...',
+    require => [
+        Class[ 'postgresql::server' ],
+        Class[ 'postgresql::client' ],
+        require => Notify[ 'Enabled ident access' ],
+    ]
+  }
+  case $os_family {
+    RedHat, Debian: {
+      postgresql::server::role { $superacct:
+        password_hash => postgresql_password( $superacct, $superpw ),
+        username      => 'postgres',
+        login         => true,
+        superuser     => true,
+        createdb      => false,
+        createrole    => false,
+        replication   => false,
+        require       => Notify[ 'Creating a CollectionSpace admin user in the database' ],
       }
     }
     default: {
@@ -581,8 +615,9 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   # ---------------------------------------------------------
   
   # The resources in this section add two datatype conversions
-  # required by Nuxeo. Each are implemented via a combination
-  # of a function, cast, and function comment.
+  # required by Nuxeo. Each are implemented via a combination of:
+  # a function, a datatype cast that invokes the function,
+  # and a comment on that function (as brief documentation).
   
   $psql_cmd = "psql -U ${superacct} -d template1"
   
@@ -708,6 +743,3 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   
   
 }
-
-
-

@@ -76,17 +76,19 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   }
 
   # ---------------------------------------------------------
-  # Obtain database superuser name and password
-  #
-  # This superuser will be given many, but not all, of
-  # the privileges of the default superuser (the user
-  # whose default name is 'postgres').
+  # Obtain database administrator names and passwords
   # ---------------------------------------------------------
 
   include cspace_user::env
-  $superuser_password = $cspace_user::env::cspace_env['DB_SUPERUSER_PASSWORD']
-  $csadmin_acct       = $cspace_user::env::cspace_env['DB_CSADMIN_USER']
-  $csadmin_password   = $cspace_user::env::cspace_env['DB_CSADMIN_PASSWORD']
+  # The default PostgreSQL database administration account
+  $db_admin_user        = $cspace_user::env::cspace_env['DB_ADMIN_USER']
+  $db_admin_password    = $cspace_user::env::cspace_env['DB_ADMIN_PASSWORD']
+  #
+  # A CollectionSpace database administration account:
+  # a superuser granted many, but not all, of the privileges of
+  # the default PostgreSQL database administration account, above.
+  $db_csadmin_user      = $cspace_user::env::cspace_env['DB_CSADMIN_USER']
+  $db_csadmin_password  = $cspace_user::env::cspace_env['DB_CSADMIN_PASSWORD']
 
   # ---------------------------------------------------------
   # Obtain operating system family
@@ -166,7 +168,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         # authentication settings, since we're setting CollectionSpace-relevant
         # host-based access rules below.
         pg_hba_conf_defaults => false,
-        postgres_password    => $superuser_password,
+        postgres_password    => $db_admin_password,
         require              => Notify[ 'Ensuring PostgreSQL server is present' ],
       }
             
@@ -234,7 +236,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         description => 'Superuser can access all databases via IPv4 from localhost',
         type        => 'host',
         database    => 'all',
-        user        => $csadmin_acct,
+        user        => $db_csadmin_user,
         address     => 'samehost',
         auth_method => 'md5',
         require     => [
@@ -282,8 +284,9 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   case $os_family {
     RedHat, Debian: {
       postgresql::server::role { 'Create CollectionSpace admin role in the database':
-        password_hash => postgresql_password( $csadmin_acct, $csadmin_password ),
-        username      => $csadmin_acct,
+        username      => $db_csadmin_user,
+        password_hash => postgresql_password( $db_csadmin_user, $db_csadmin_password ),
+        # The following are the initial privileges granted to this role
         login         => true,
         superuser     => true,
         createdb      => false,
@@ -453,7 +456,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       #   [
       #     "$system_temp_dir/${installer_filename}",
       #     " --mode unattended --locale ${locale}",
-      #     " --superaccount ${csadmin_acct} --superpassword ${csadmin_password}",
+      #     " --superaccount ${db_admin_user} --superpassword ${db_admin_password}",
       #   ]
       # )
       # notify{ 'Running PostgreSQL installer':
@@ -498,7 +501,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         [
           "\"${osx_volume_name}/${osx_app_installer_name}\"",
           " --mode unattended --locale ${locale}",
-          " --superaccount ${csadmin_acct} --superpassword ${csadmin_password}",
+          " --superaccount ${db_admin_user} --superpassword ${db_admin_password}",
         ]
       )
       # FIXME: This code block works but is commented out for now
@@ -620,7 +623,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   # a function, a datatype cast that invokes the function,
   # and a comment on that function (as brief documentation).
   
-  $psql_cmd = "psql -U ${csadmin_acct} -d template1"
+  $psql_cmd = "psql -U ${db_admin_user} -d template1"
   
   # Function and associated datatype cast to convert integers to text
   #
@@ -653,7 +656,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         command   => "${psql_cmd} -c \"${int_txt_function}\"",
         cwd       => $system_temp_dir,
         path      => $exec_paths,
-        user      => $csadmin_acct,
+        user      => $db_admin_user,
         logoutput => on_failure,
         require   => [ 
           Class[ 'postgresql::server' ],
@@ -665,7 +668,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         command   => "${psql_cmd} -c \"${int_txt_cast}\"",
         cwd       => $system_temp_dir,
         path      => $exec_paths,
-        user      => $csadmin_acct,
+        user      => $db_admin_user,
         logoutput => on_failure,
         require   => [ 
           Class[ 'postgresql::server' ],
@@ -678,7 +681,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         command   => "${psql_cmd} -c \"${int_txt_comment}\"",
         cwd       => $system_temp_dir,
         path      => $exec_paths,
-        user      => $csadmin_acct,
+        user      => $db_admin_user,
         logoutput => on_failure,
         require   => [ 
           Class[ 'postgresql::server' ],
@@ -692,7 +695,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         command   => "${psql_cmd} -c \"${bigint_txt_function}\"",
         cwd       => $system_temp_dir,
         path      => $exec_paths,
-        user      => $csadmin_acct,
+        user      => $db_admin_user,
         logoutput => on_failure,
         require   => [ 
           Class[ 'postgresql::server' ],
@@ -704,7 +707,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         command   => "${psql_cmd} -c \"${bigint_txt_cast}\"",
         cwd       => $system_temp_dir,
         path      => $exec_paths,
-        user      => $csadmin_acct,
+        user      => $db_admin_user,
         logoutput => on_failure,
         require   => [ 
           Class[ 'postgresql::server' ],
@@ -717,7 +720,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         command   => "${psql_cmd} -c \"${bigint_txt_comment}\"",
         cwd       => $system_temp_dir,
         path      => $exec_paths,
-        user      => $csadmin_acct,
+        user      => $db_admin_user,
         logoutput => on_failure,
         require   => [ 
           Class[ 'postgresql::server' ],

@@ -276,7 +276,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
     require => [
         Class[ 'postgresql::server' ],
         Class[ 'postgresql::client' ],
-        require => Notify[ 'Enabled ident access' ],
+        Notify[ 'Enabled ident access' ],
     ]
   }
   case $os_family {

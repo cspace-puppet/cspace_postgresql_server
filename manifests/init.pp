@@ -627,24 +627,20 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   
   # Function and associated datatype cast to convert integers to text
   #
-  # TODO: The CREATE FUNCTION command is not idempotent; it will fail
-  # if a function with this name and type already exists. To drop the
-  # function and its dependent cast and comment, we could run
-  # 'DROP FUNCTION pg_catalog.text(integer) CASCADE;'
-  # and ignore failures, prior to 'CREATE FUNCTION ...'
-  #
   # (Although the following double-quoted string contains no variables,
   # and hence is flagged by puppet-lint, it works; change it only with care ...)
-  $int_txt_function = "CREATE FUNCTION pg_catalog.text(integer) RETURNS text STRICT IMMUTABLE LANGUAGE SQL AS 'SELECT textin(int4out(\\\$1));';"
-  $int_txt_cast     = 'CREATE CAST (integer AS text) WITH FUNCTION pg_catalog.text(integer) AS IMPLICIT;'
-  $int_txt_comment  = 'COMMENT ON FUNCTION pg_catalog.text(integer) IS \'convert integer to text\';'
+  $int_txt_function  = "CREATE OR REPLACE FUNCTION pg_catalog.text(integer) RETURNS text STRICT IMMUTABLE LANGUAGE SQL AS 'SELECT textin(int4out(\\\$1));';"
+  $int_txt_drop_cast = 'DROP CAST IF EXISTS (integer AS text);;'
+  $int_txt_cast      = 'CREATE CAST (integer AS text) WITH FUNCTION pg_catalog.text(integer) AS IMPLICIT;'
+  $int_txt_comment   = 'COMMENT ON FUNCTION pg_catalog.text(integer) IS \'convert integer to text\';'
   
   # Function and associated datatype cast to convert 'bigints' to text
   #
   # (See notes above, which apply equally to the command below.)
-  $bigint_txt_function = "CREATE FUNCTION pg_catalog.text(bigint) RETURNS text STRICT IMMUTABLE LANGUAGE SQL AS 'SELECT textin(int8out(\\\$1));';"
-  $bigint_txt_cast     = 'CREATE CAST (bigint AS text) WITH FUNCTION pg_catalog.text(bigint) AS IMPLICIT;'
-  $bigint_txt_comment  = 'COMMENT ON FUNCTION pg_catalog.text(bigint) IS \'convert bigint to text\';'
+  $bigint_txt_function  = "CREATE OR REPLACE FUNCTION pg_catalog.text(bigint) RETURNS text STRICT IMMUTABLE LANGUAGE SQL AS 'SELECT textin(int8out(\\\$1));';"
+  $bigint_txt_drop_cast = 'DROP CAST IF EXISTS (bigint AS text);;'
+  $bigint_txt_cast      = 'CREATE CAST (bigint AS text) WITH FUNCTION pg_catalog.text(bigint) AS IMPLICIT;'
+  $bigint_txt_comment   = 'COMMENT ON FUNCTION pg_catalog.text(bigint) IS \'convert bigint to text\';'
   
   notify{ 'Adding datatype conversions':
     message => 'Adding Nuxeo-required datatype conversions to the database ...',
@@ -664,6 +660,19 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
           Notify[ 'Adding datatype conversions' ],
         ]
       }
+      exec { 'Drop existing integer-to-text conversion cast':
+        command   => "${psql_cmd} -c \"${int_txt_drop_cast}\"",
+        cwd       => $system_temp_dir,
+        path      => $exec_paths,
+        user      => $db_admin_user,
+        logoutput => on_failure,
+        require   => [ 
+          Class[ 'postgresql::server' ],
+          Class[ 'postgresql::client' ],
+          Notify[ 'Adding datatype conversions' ],
+          Exec[ 'Add integer-to-text conversion function' ],
+        ]
+      }
       exec { 'Add integer-to-text conversion cast':
         command   => "${psql_cmd} -c \"${int_txt_cast}\"",
         cwd       => $system_temp_dir,
@@ -674,7 +683,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
           Class[ 'postgresql::server' ],
           Class[ 'postgresql::client' ],
           Notify[ 'Adding datatype conversions' ],
-          Exec[ 'Add integer-to-text conversion function' ],
+          Exec[ 'Drop existing integer-to-text conversion cast' ],
         ]
       }
       exec { 'Add integer-to-text conversion comment':
@@ -703,6 +712,19 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
           Notify[ 'Adding datatype conversions' ],
         ]
       }
+      exec { 'Drop existing bigint-to-text conversion cast':
+        command   => "${psql_cmd} -c \"${bigint_txt_drop_cast}\"",
+        cwd       => $system_temp_dir,
+        path      => $exec_paths,
+        user      => $db_admin_user,
+        logoutput => on_failure,
+        require   => [ 
+          Class[ 'postgresql::server' ],
+          Class[ 'postgresql::client' ],
+          Notify[ 'Adding datatype conversions' ],
+          Exec[ 'Add bigint-to-text conversion function' ],
+        ]
+      }
       exec { 'Add bigint-to-text conversion cast':
         command   => "${psql_cmd} -c \"${bigint_txt_cast}\"",
         cwd       => $system_temp_dir,
@@ -713,7 +735,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
           Class[ 'postgresql::server' ],
           Class[ 'postgresql::client' ],
           Notify[ 'Adding datatype conversions' ],
-          Exec[ 'Add bigint-to-text conversion function' ],
+          Exec[ 'Drop existing bigint-to-text conversion cast' ],
         ]
       }
       exec { 'Add bigint-to-text conversion comment':

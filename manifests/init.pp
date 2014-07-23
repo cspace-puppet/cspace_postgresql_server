@@ -630,7 +630,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   # (Although the following double-quoted string contains no variables,
   # and hence is flagged by puppet-lint, it works; change it only with care ...)
   $int_txt_function  = "CREATE OR REPLACE FUNCTION pg_catalog.text(integer) RETURNS text STRICT IMMUTABLE LANGUAGE SQL AS 'SELECT textin(int4out(\\\$1));';"
-  $int_txt_drop_cast = 'DROP CAST IF EXISTS (integer AS text);;'
+  $int_txt_drop_cast = 'DROP CAST IF EXISTS (integer AS text);'
   $int_txt_cast      = 'CREATE CAST (integer AS text) WITH FUNCTION pg_catalog.text(integer) AS IMPLICIT;'
   $int_txt_comment   = 'COMMENT ON FUNCTION pg_catalog.text(integer) IS \'convert integer to text\';'
   
@@ -638,7 +638,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   #
   # (See notes above, which apply equally to the command below.)
   $bigint_txt_function  = "CREATE OR REPLACE FUNCTION pg_catalog.text(bigint) RETURNS text STRICT IMMUTABLE LANGUAGE SQL AS 'SELECT textin(int8out(\\\$1));';"
-  $bigint_txt_drop_cast = 'DROP CAST IF EXISTS (bigint AS text);;'
+  $bigint_txt_drop_cast = 'DROP CAST IF EXISTS (bigint AS text);'
   $bigint_txt_cast      = 'CREATE CAST (bigint AS text) WITH FUNCTION pg_catalog.text(bigint) AS IMPLICIT;'
   $bigint_txt_comment   = 'COMMENT ON FUNCTION pg_catalog.text(bigint) IS \'convert bigint to text\';'
   

@@ -230,8 +230,8 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         auth_method => 'peer',
         require     => Notify[ 'Ensuring PostgreSQL host-based access rules' ],
       } ->
-      notify{ 'Enabled ident access':
-        message => 'Enabled ident access to PostgreSQL server over local connections.',
+      notify{ 'Enabled peer access':
+        message => 'Enabled peer access to PostgreSQL server over local connections.',
       }
       postgresql::server::pg_hba_rule { 'superuser via IPv4':
         order       => '40',
@@ -280,7 +280,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
     require => [
         Class[ 'postgresql::server' ],
         Class[ 'postgresql::client' ],
-        Notify[ 'Enabled ident access' ],
+        Notify[ 'Enabled peer access' ],
     ]
   }
   case $os_family {

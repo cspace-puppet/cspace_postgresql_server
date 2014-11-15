@@ -216,16 +216,18 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
       notify{ 'Ensuring PostgreSQL host-based access rules':
         message => 'Ensuring additional PostgreSQL server host-based access rules, if any ...',
       }
-      # Providing 'ident'-based access for the default 'postgres' user appears to be required
-      # by the puppetlabs-postgresql module for validating the database connection. (It may also
-      # be required for setting the 'postgres' user's password, per postgresql::server::passwd.)
+      # Providing 'peer' (or the less secure 'ident') access for
+      # the default 'postgres' user appears to be required by the
+      # puppetlabs-postgresql module for validating the database
+      # connection. (It may also be required for setting the 'postgres'
+      # user's password, per postgresql::server::passwd.)
       postgresql::server::pg_hba_rule { 'TYPE  DATABASE  USER  ADDRESS  METHOD':
         order       => '20',
-        description => 'Enable ident access over local (Unix domain socket) connections',
+        description => 'Enable peer access over local (Unix domain socket) connections',
         type        => 'local',
         database    => 'all',
-        user        => 'all',
-        auth_method => 'ident',
+        user        => 'postgres',
+        auth_method => 'peer',
         require     => Notify[ 'Ensuring PostgreSQL host-based access rules' ],
       } ->
       notify{ 'Enabled ident access':

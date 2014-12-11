@@ -1,11 +1,12 @@
 {
   "name": "collectionspace-cspace_postgresql_server",
   "version": "4.1.1",
-  "summary": "CollectionSpace PostgreSQL Server Management",
+  "summary": "Ensures the availability of a PostgreSQL database server, a prerequisite for a standalone CollectionSpace server installation",
   "author": "CollectionSpace",
-  "description": "Ensures the availability of a PostgreSQL database server, a prerequisite for a standalone CollectionSpace server installation",
-  "dependencies": [],
-  "types": [],
+  "dependencies": [
+    { "name": "puppetlabs/stdlib", "version_requirement": ">=4.0.0" },
+    { "name": "puppetlabs/postgresql", "version_requirement": ">=4.0.0" }
+  ],
   "source": "https://github.com/cspace-puppet/cspace_postgresql_server.git",
   "project_page": "http://wiki.collectionspace.org",
   "license": " Educational Community License, Version 2.0"

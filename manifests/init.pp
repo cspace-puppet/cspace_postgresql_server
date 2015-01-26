@@ -627,10 +627,14 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   
   $psql_cmd = "psql -U ${db_admin_user} -d template1"
   
+  # Tell puppet-lint to ignore double quoted string warnings in the blocks below
+  # lint:ignore:double_quoted_strings
+
   # Function and associated datatype cast to convert integers to text
   #
   # (Although the following double-quoted string contains no variables,
-  # and hence is flagged by puppet-lint, it works; change it only with care ...)
+  # and hence might be flagged by some versions of puppet-lint, it works;
+  # change it only with care ...)
   $int_txt_function  = "CREATE OR REPLACE FUNCTION pg_catalog.text(integer) RETURNS text STRICT IMMUTABLE LANGUAGE SQL AS 'SELECT textin(int4out(\\\$1));';"
   $int_txt_drop_cast = 'DROP CAST IF EXISTS (integer AS text);'
   $int_txt_cast      = 'CREATE CAST (integer AS text) WITH FUNCTION pg_catalog.text(integer) AS IMPLICIT;'
@@ -644,6 +648,8 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   $bigint_txt_cast      = 'CREATE CAST (bigint AS text) WITH FUNCTION pg_catalog.text(bigint) AS IMPLICIT;'
   $bigint_txt_comment   = 'COMMENT ON FUNCTION pg_catalog.text(bigint) IS \'convert bigint to text\';'
   
+  # lint:endignore
+
   notify{ 'Adding datatype conversions':
     message => 'Adding Nuxeo-required datatype conversions to the database ...',
   }

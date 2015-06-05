@@ -45,7 +45,10 @@ include postgresql::globals
 include postgresql::server
 include stdlib # for 'join()'
 
-class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US.UTF-8' ) {
+class cspace_postgresql_server (
+    $postgresql_version = '9.4.3',
+    $locale = $cspace_user::env::cspace_env['LC_ALL'],
+  ) {
 
   # ---------------------------------------------------------
   # Validate parameters
@@ -76,7 +79,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   }
   
   # ---------------------------------------------------------
-  # Obtain the CollectionSpace server instance identifier
+  # Obtain the CollectionSpace server instance ID
   # ---------------------------------------------------------
   
   include cspace_user::env
@@ -96,7 +99,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   # a superuser granted many, but not all, of the privileges of
   # the default PostgreSQL database administration account, above.
   #
-  # This account name is qualified by the server instance identifier, if any.
+  # This account name is qualified by the server instance ID, if any.
   $db_csadmin_user      = join(
     [
       $cspace_user::env::cspace_env['DB_CSADMIN_USER'],
@@ -104,6 +107,30 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
     ]
   )
   $db_csadmin_password  = $cspace_user::env::cspace_env['DB_CSADMIN_PASSWORD']
+  
+  # ---------------------------------------------------------
+  # Obtain database user names and passwords
+  # ---------------------------------------------------------
+  
+  # The name of the 'cspace' user, and of the AuthN/AuthZ database
+  # to which they have access, are both qualified by the server
+  # instance ID, if any.
+  $db_cspace_user        = join(
+    [
+      'cspace',
+      $cspace_instance_id,
+    ]
+  )
+  $db_cspace_database   = $db_cspace_user
+  # The name of the 'nuxeo' user is qualified by the server instance ID,
+  # if any.
+  $db_nuxeo_user        = join(
+    [
+      'nuxeo',
+      $cspace_instance_id,
+    ]
+  )
+  
 
   # ---------------------------------------------------------
   # Obtain operating system family
@@ -264,8 +291,8 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         order       => '60',
         description => '\'cspace\' user can access \'cspace\' database via IPv4 from localhost',
         type        => 'host',
-        database    => 'cspace',
-        user        => 'cspace',
+        database    => $db_cspace_database,
+        user        => $db_cspace_user,
         address     => 'samehost',
         auth_method => 'md5',
         require     => Notify[ 'Ensuring PostgreSQL host-based access rules' ],
@@ -275,7 +302,7 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
         description => '\'nuxeo\' user can access all databases via IPv4 from localhost',
         type        => 'host',
         database    => 'all',
-        user        => 'nuxeo',
+        user        => $db_nuxeo_user,
         address     => 'samehost',
         auth_method => 'md5',
         require     => Notify[ 'Ensuring PostgreSQL host-based access rules' ],

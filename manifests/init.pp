@@ -74,12 +74,20 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   } else {
       $postgresql_major_version = $postgresql_version
   }
+  
+  # ---------------------------------------------------------
+  # Obtain the CollectionSpace server instance identifier
+  # ---------------------------------------------------------
+  
+  include cspace_user::env
+  
+  # The CollectionSpace instance identifier
+  $cspace_instance_id   = $cspace_user::env::cspace_env['CSPACE_INSTANCE_ID']
 
   # ---------------------------------------------------------
   # Obtain database administrator names and passwords
   # ---------------------------------------------------------
 
-  include cspace_user::env
   # The default PostgreSQL database administration account
   $db_admin_user        = $cspace_user::env::cspace_env['DB_ADMIN_USER']
   $db_admin_password    = $cspace_user::env::cspace_env['DB_ADMIN_PASSWORD']
@@ -87,7 +95,14 @@ class cspace_postgresql_server ( $postgresql_version = '9.2.5', $locale = 'en_US
   # A CollectionSpace database administration account:
   # a superuser granted many, but not all, of the privileges of
   # the default PostgreSQL database administration account, above.
-  $db_csadmin_user      = $cspace_user::env::cspace_env['DB_CSADMIN_USER']
+  #
+  # This account name is qualified by the server instance identifier, if any.
+  $db_csadmin_user      = join(
+    [
+      $cspace_user::env::cspace_env['DB_CSADMIN_USER'],
+      $cspace_instance_id,
+    ]
+  )
   $db_csadmin_password  = $cspace_user::env::cspace_env['DB_CSADMIN_PASSWORD']
 
   # ---------------------------------------------------------

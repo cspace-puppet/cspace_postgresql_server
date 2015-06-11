@@ -94,18 +94,11 @@ class cspace_postgresql_server (
   # The default PostgreSQL database administration account
   $db_admin_user        = $cspace_user::env::cspace_env['DB_ADMIN_USER']
   $db_admin_password    = $cspace_user::env::cspace_env['DB_ADMIN_PASSWORD']
-  #
+  
   # A CollectionSpace database administration account:
   # a superuser granted many, but not all, of the privileges of
   # the default PostgreSQL database administration account, above.
-  #
-  # This account name is qualified by the server instance ID, if any.
-  $db_csadmin_user      = join(
-    [
-      $cspace_user::env::cspace_env['DB_CSADMIN_USER'],
-      $cspace_instance_id,
-    ]
-  )
+  $db_csadmin_user      = $cspace_user::env::cspace_env['DB_CSADMIN_USER']
   $db_csadmin_password  = $cspace_user::env::cspace_env['DB_CSADMIN_PASSWORD']
   
   # ---------------------------------------------------------

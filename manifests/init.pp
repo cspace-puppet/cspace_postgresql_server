@@ -354,8 +354,8 @@ class cspace_postgresql_server (
       notify{ 'Ensuring PostgreSQL configuration settings':
         message => 'Ensuring CollectionSpace-relevant PostgreSQL configuration settings ...',
       }
-      postgresql::server::config_entry { 'max_connections':
-        value   => 32, # Conservative default; could be changed to 64 
+      postgresql::server::config_entry { 'max_prepared_transactions':
+        value   => 64,
         require => Notify[ 'Ensuring PostgreSQL configuration settings' ],
       }
     }

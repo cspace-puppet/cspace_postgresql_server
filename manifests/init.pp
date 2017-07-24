@@ -268,8 +268,20 @@ class cspace_postgresql_server (
       notify{ 'Enabled peer access':
         message => 'Enabled peer access to PostgreSQL server over local connections.',
       }
-      postgresql::server::pg_hba_rule { 'superuser via IPv4':
+	  postgresql::server::pg_hba_rule { 'md5 all users via IPv4':
         order       => '40',
+        description => 'All users can access all databases from localhost with correct passwords',
+        type        => 'host',
+        database    => 'all',
+        user        => 'all',
+        address     => '127.0.0.1/32',
+        auth_method => 'md5',
+        require     => [
+            Notify[ 'Ensuring PostgreSQL host-based access rules' ],
+        ]
+      }
+      postgresql::server::pg_hba_rule { 'superuser via IPv4':
+        order       => '50',
         description => 'Superuser can access all databases via IPv4 from localhost',
         type        => 'host',
         database    => 'all',

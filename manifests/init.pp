@@ -46,7 +46,7 @@ include postgresql::server
 include stdlib # for 'join()'
 
 class cspace_postgresql_server (
-    $postgresql_version = '9.4.3',
+    $postgresql_version = '9.6',
     $locale = $cspace_user::env::cspace_env['LC_ALL'],
   ) {
 
@@ -55,19 +55,19 @@ class cspace_postgresql_server (
   # ---------------------------------------------------------
 
   # TODO: Can further tighten these regexes as needed
-  
-  if (! locale =~ /^.*?\.utf8$/) {
+
+  unless $locale =~ /^.*\.utf8$/ {
     fail( "Invalid locale ${locale}: locale must support UTF-8 encoding" )
   }
 
-  if (! $postgresql_version =~ /^\d+\.\d+\.\d+$/) and (! $postgresql_version =~ /^\d+\.\d+$/) {
+  unless $postgresql_version =~ /^\d+\.\d+/ {
     fail( "Unrecognized PostgreSQL version ${postgresql_version}" )
   }
-  
+
   # TODO: Add a validation check for the provided locale, perhaps by
   # comparing it against the list of available locales returned by
   # 'locale -a' on Linux and OS X. This might be done in a (Ruby) function.
-    
+
   # ---------------------------------------------------------
   # Obtain major version number
   # ---------------------------------------------------------
@@ -77,13 +77,13 @@ class cspace_postgresql_server (
   } else {
       $postgresql_major_version = $postgresql_version
   }
-  
+
   # ---------------------------------------------------------
   # Obtain the CollectionSpace server instance ID
   # ---------------------------------------------------------
-  
+
   include cspace_user::env
-  
+
   # The CollectionSpace instance identifier
   $cspace_instance_id   = $cspace_user::env::cspace_env['CSPACE_INSTANCE_ID']
 
@@ -94,17 +94,17 @@ class cspace_postgresql_server (
   # The default PostgreSQL database administration account
   $db_admin_user        = $cspace_user::env::cspace_env['DB_ADMIN_USER']
   $db_admin_password    = $cspace_user::env::cspace_env['DB_ADMIN_PASSWORD']
-  
+
   # A CollectionSpace database administration account:
   # a superuser granted many, but not all, of the privileges of
   # the default PostgreSQL database administration account, above.
   $db_csadmin_user      = $cspace_user::env::cspace_env['DB_CSADMIN_USER']
   $db_csadmin_password  = $cspace_user::env::cspace_env['DB_CSADMIN_PASSWORD']
-  
+
   # ---------------------------------------------------------
   # Obtain database user names and passwords
   # ---------------------------------------------------------
-  
+
   # The name of the 'cspace' user, and of the AuthN/AuthZ database
   # to which they have access, are both qualified by the server
   # instance ID, if any.
@@ -123,69 +123,69 @@ class cspace_postgresql_server (
       $cspace_instance_id,
     ]
   )
-  
+
 
   # ---------------------------------------------------------
   # Obtain operating system family
   # ---------------------------------------------------------
-  
+
   $os_family = $cspace_environment::osfamily::os_family
-  
+
   # ---------------------------------------------------------
   # Obtain platform-specific values
   # ---------------------------------------------------------
 
   $system_temp_dir = $cspace_environment::tempdir::system_temp_directory
-    
+
   case $os_family {
-    RedHat, Debian: {
+    'RedHat', 'Debian': {
       $exec_paths = $cspace_environment::execpaths::linux_default_exec_paths
       $os_bits = $cspace_environment::osbits::os_bits
     }
     # OS X
-    darwin: {
+    'darwin': {
       $exec_paths = $cspace_environment::execpaths::osx_default_exec_paths
     }
     # Microsoft Windows
-    windows: {
+    'windows': {
     }
-    default: {
+    'default': {
     }
   }
-  
-  
+
+
   # ######################################################################
   # Diverge here, depending on platform (Linux v. non-Linux),
   # by selecting one of the two options below
   # ######################################################################
-  
-  
+
+
   # ######################################################################
   # Option 1:
   # Install and configure PostgreSQL using a Linux package manager,
-  # via the 'puppetlabs-postgresql' Puppet module 
+  # via the 'puppetlabs-postgresql' Puppet module
   # ######################################################################
-  
+
   # ---------------------------------------------------------
   # Install the PostgreSQL server
   # ---------------------------------------------------------
-  
+
   case $os_family {
-    RedHat, Debian: {
-      
+    'RedHat', 'Debian': {
+
       notify{ 'Setting global values':
         message => 'Setting global values to be used by PostgreSQL installer ...',
       }
       class { 'postgresql::globals':
         # Rather than specifying the PostgreSQL version on Linux distros, use
-        # the per-distro-and-version package manager defaults wherever available. 
+        # the per-distro-and-version package manager defaults wherever available.
         # This will help ensure that the appropriate packages are available.
         # (That's why the 'version' attribute doesn't appear here.)
         encoding => 'UTF8',
         locale   => $locale,
-        require  => Notify[ 'Setting global values' ],
+        require  => Notify['Setting global values'],
       }
-      
+
       notify{ 'Ensuring PostgreSQL server is present':
         message => 'Ensuring that PostgreSQL server is present ...',
       }
@@ -204,40 +204,40 @@ class cspace_postgresql_server (
         # host-based access rules below.
         pg_hba_conf_defaults => false,
         postgres_password    => $db_admin_password,
-        require              => Notify[ 'Ensuring PostgreSQL server is present' ],
+        require              => Notify['Ensuring PostgreSQL server is present'],
       }
-            
+
     }
-    default: {
+    'default': {
       # Do nothing
     }
   }
-  
+
   # ---------------------------------------------------------
   # Install the PostgreSQL client ('psql')
   # ---------------------------------------------------------
-  
+
   case $os_family {
-    RedHat, Debian: {
-  
+    'RedHat', 'Debian': {
+
       notify{ 'Ensuring PostgreSQL client is present':
         message => 'Ensuring that PostgreSQL client is present ...',
       }
       # By default, 'ensure => present', so instantiating the following
       # resource will install 'psql', the CLI PostgreSQL client.
       class { 'postgresql::client':
-        require => Notify[ 'Ensuring PostgreSQL client is present' ],
+        require => Notify['Ensuring PostgreSQL client is present'],
       }
     }
-    default: {
+    'default': {
       # Do nothing
     }
   }
-    
+
   # ---------------------------------------------------------
   # Configure host-based authentication settings
   # ---------------------------------------------------------
-  
+
   # The following resources are platform-specific because they rely on
   # capabilities of the 'puppetlabs-postgresql' package, which in turn
   # appears to currently only support Linux platforms.
@@ -245,9 +245,9 @@ class cspace_postgresql_server (
 
   # TODO: Add any additional access rules required, such as
   # rules required to support local or remote reporting, etc.
-  
+
   case $os_family {
-    RedHat, Debian: {
+    'RedHat', 'Debian': {
       notify{ 'Ensuring PostgreSQL host-based access rules':
         message => 'Ensuring additional PostgreSQL server host-based access rules, if any ...',
       }
@@ -263,7 +263,7 @@ class cspace_postgresql_server (
         database    => 'all',
         user        => 'postgres',
         auth_method => 'peer',
-        require     => Notify[ 'Ensuring PostgreSQL host-based access rules' ],
+        require     => Notify['Ensuring PostgreSQL host-based access rules'],
       } ->
       notify{ 'Enabled peer access':
         message => 'Enabled peer access to PostgreSQL server over local connections.',
@@ -277,7 +277,7 @@ class cspace_postgresql_server (
         address     => '127.0.0.1/32',
         auth_method => 'md5',
         require     => [
-            Notify[ 'Ensuring PostgreSQL host-based access rules' ],
+            Notify['Ensuring PostgreSQL host-based access rules'],
         ]
       }
       postgresql::server::pg_hba_rule { 'superuser via IPv4':
@@ -289,7 +289,7 @@ class cspace_postgresql_server (
         address     => 'samehost',
         auth_method => 'md5',
         require     => [
-            Notify[ 'Ensuring PostgreSQL host-based access rules' ],
+            Notify['Ensuring PostgreSQL host-based access rules'],
         ]
       }
       postgresql::server::pg_hba_rule { 'cspace user via IPv4':
@@ -300,7 +300,7 @@ class cspace_postgresql_server (
         user        => $db_cspace_user,
         address     => 'samehost',
         auth_method => 'md5',
-        require     => Notify[ 'Ensuring PostgreSQL host-based access rules' ],
+        require     => Notify['Ensuring PostgreSQL host-based access rules'],
       }
       postgresql::server::pg_hba_rule { 'nuxeo user via IPv4':
         order       => '80',
@@ -310,14 +310,14 @@ class cspace_postgresql_server (
         user        => $db_nuxeo_user,
         address     => 'samehost',
         auth_method => 'md5',
-        require     => Notify[ 'Ensuring PostgreSQL host-based access rules' ],
+        require     => Notify['Ensuring PostgreSQL host-based access rules'],
       }
     }
-    default: {
+    'default': {
       # Do nothing
     }
   }
-  
+
   # ---------------------------------------------------------
   # Create a CollectionSpace administration database user
   # ---------------------------------------------------------
@@ -325,13 +325,13 @@ class cspace_postgresql_server (
   notify{ 'Creating a CollectionSpace admin user in the database':
     message => 'Creating a CollectionSpace administrator user in the database ...',
     require => [
-        Class[ 'postgresql::server' ],
-        Class[ 'postgresql::client' ],
-        Notify[ 'Enabled peer access' ],
+        Class['postgresql::server'],
+        Class['postgresql::client'],
+        Notify['Enabled peer access'],
     ]
   }
   case $os_family {
-    RedHat, Debian: {
+    'RedHat', 'Debian': {
       postgresql::server::role { 'Create CollectionSpace admin role in the database':
         username      => $db_csadmin_user,
         password_hash => postgresql_password( $db_csadmin_user, $db_csadmin_password ),
@@ -341,14 +341,14 @@ class cspace_postgresql_server (
         createdb      => false,
         createrole    => false,
         replication   => false,
-        require       => Notify[ 'Creating a CollectionSpace admin user in the database' ],
+        require       => Notify['Creating a CollectionSpace admin user in the database'],
       }
     }
-    default: {
+    'default': {
       # Do nothing
     }
   }
-  
+
   # ---------------------------------------------------------
   # Configure main PostgreSQL settings
   # ---------------------------------------------------------
@@ -362,20 +362,20 @@ class cspace_postgresql_server (
   # required for database tuning or other implementation-specific purposes.
 
   case $os_family {
-    RedHat, Debian: {
+    'RedHat', 'Debian': {
       notify{ 'Ensuring PostgreSQL configuration settings':
         message => 'Ensuring CollectionSpace-relevant PostgreSQL configuration settings ...',
       }
       postgresql::server::config_entry { 'max_prepared_transactions':
         value   => 64,
-        require => Notify[ 'Ensuring PostgreSQL configuration settings' ],
+        require => Notify['Ensuring PostgreSQL configuration settings'],
       }
     }
-    default: {
+    'default': {
       # Do nothing
     }
   }
-    
+
 
   # ######################################################################
   # Option 2:
@@ -387,35 +387,35 @@ class cspace_postgresql_server (
   # ---------------------------------------------------------
   # Download PostgreSQL installer
   # ---------------------------------------------------------
-  
+
   # Unlike platform-specific package installations, the
   # EnterpriseDB-packaged installer is cross-platform, and
   # generally keeps up with new PostgreSQL releases.
   # As well, many different past releases are available in
   # that organization's archives, if needed.
-  
+
   # For unattended installation command line options, see:
   # http://www.enterprisedb.com/docs/en/9.2/instguide/
   # with the above URL followed by (to avoid line wrapping)
   # Postgres_Plus_Advanced_Server_Installation_Guide-16.htm
   # Postgres_Plus_Advanced_Server_Installation_Guide-18.htm
-  
+
   $postgresql_version_long   = "${postgresql_version}-1"
   $distribution_filename     = "postgresql-${postgresql_version_long}"
   $linux_64bit_extension     = 'linux-x64.run'
   $linux_32bit_extension     = 'linux.run'
   $osx_extension             = 'osx.dmg'
   $postgresql_repository_dir = 'http://get.enterprisedb.com/postgresql'
-  
+
   case $os_family {
-    RedHat, Debian: {
+    'RedHat', 'Debian': {
       # The following code block is commented out because, on these
       # Linux platforms, the presence of PostgreSQL is ensured via
       # Option 1, above.
       # if $os_bits == '64-bit' {
       #   $linux_extension = $linux_64bit_extension
       # } elsif $os_bits == '32-bit' {
-      #   $linux_extension = $linux_32bit_extension    
+      #   $linux_extension = $linux_32bit_extension
       # } else {
       #   fail( 'Could not select Linux PostgreSQL installer: unknown value for OS virtual address space' )
       # }
@@ -425,7 +425,7 @@ class cspace_postgresql_server (
       #   cwd       => $system_temp_dir,
       #   creates   => "${system_temp_dir}/${installer_filename}",
       #   path      => $exec_paths,
-      #   logoutput => on_failure,      
+      #   logoutput => on_failure,
       # }
       # exec { 'Set executable permissions on PostgreSQL installer':
       #   command   => "chmod ug+x ${system_temp_dir}/${installer_filename}",
@@ -434,7 +434,7 @@ class cspace_postgresql_server (
       # }
     }
     # OS X
-    darwin: {
+    'darwin': {
       $installer_filename   = "${distribution_filename}-${osx_extension}"
       notify{ 'Downloading PostgreSQL installer':
         message => 'Downloading EnterpriseDB PostgreSQL installer ...',
@@ -445,35 +445,35 @@ class cspace_postgresql_server (
         creates   => "${system_temp_dir}/${installer_filename}",
         path      => $exec_paths,
         logoutput => on_failure,
-        require   => Notify [ 'Downloading PostgreSQL installer' ]
+        require   => Notify['Downloading PostgreSQL installer']
       }
     }
     # Microsoft Windows
-    windows: {
+    'windows': {
     }
-    default: {
+    'default': {
     }
   }
-  
+
   # ---------------------------------------------------------
   # Account for existing installation of PostgreSQL, if any
   # ---------------------------------------------------------
-  
-  # FIXME: 
+
+  # FIXME:
   # We can't assume this manifest will always be run on a
   # system where PostgreSQL isn't already present. As a
   # result, we should first:
   #
   # * Check for the presence of PostgreSQL.
   # * Shut down PostgreSQL, if it's both present and running.
-  # * Ensure that any existing data directory isn't 
+  # * Ensure that any existing data directory isn't
   #   overwritten by a new installation.
-  
+
   # ---------------------------------------------------------
   # Install PostgreSQL
   # (EnterpriseDB installer, unattended mode)
   # ---------------------------------------------------------
-  
+
   # The EnterpriseDB installer:
   # Creates a system user to administer PostgreSQL.
   # Installs the PostgreSQL server:
@@ -494,9 +494,9 @@ class cspace_postgresql_server (
   # (commented-out) settings, save for local timezone, locale, etc.
   # Starts the PostgreSQL server.
   # Creates an administrative PostgreSQL user ("superuser").
-  
+
   case $os_family {
-    RedHat, Debian: {
+    'RedHat', 'Debian': {
       # The following code block, although formerly tested as working
       # (at least on Fedora 18), is commented out because, on these
       # two Linux platforms, the presence of PostgreSQL is ensured via
@@ -520,12 +520,12 @@ class cspace_postgresql_server (
       #   logoutput => on_failure,
       #   require   => [
       #     Exec[ 'Download PostgreSQL installer' ],
-      #     Exec[ 'Set executable permissions on PostgreSQL installer' ],      
+      #     Exec[ 'Set executable permissions on PostgreSQL installer' ],
       #   ]
       # }
     }
     # OS X
-    darwin: {
+    'darwin': {
       notify{ 'Mounting installer disk image':
         message => 'Mounting the EnterpriseDB PostgreSQL installer disk image ...',
       } ->
@@ -590,58 +590,58 @@ class cspace_postgresql_server (
       # }
     }
     # Microsoft Windows
-    windows: {
+    'windows': {
     }
-    default: {
+    'default': {
     }
   }
-  
+
   # ---------------------------------------------------------
   # Create a CollectionSpace administration database user
   # ---------------------------------------------------------
-  
-  # TODO: Add code to complete this stub section. 
-  
+
+  # TODO: Add code to complete this stub section.
+
   # ---------------------------------------------------------
   # Configure host-based authentication settings
   # ---------------------------------------------------------
 
   # TODO: Tighten the default settings to restrict localhost
   # access to specific users and/or databases
-  
+
   # TODO: Add any remote access needed for reporting, etc.
 
   # case $os_family {
   #   # OS X
-  #   darwin: {
+  #   'darwin': {
   #   }
   #   # Microsoft Windows
-  #   windows: {
+  #   'windows': {
   #   }
-  #   default: {
+  #   'default': {
   #   }
   # }
-  
+
   # ---------------------------------------------------------
   # Configure main PostgreSQL settings
   # ---------------------------------------------------------
-  
+
   # TODO: Change any settings, as required, in the main
   # PostgreSQL configuration file
   #
   # This will include setting max_connections = 64 (or 32)
-  
+
   # case $os_family {
   #   # OS X
-  #   darwin: {
+  #   'darwin': {
   #   }
   #   # Microsoft Windows
-  #   windows: {
+  #   'windows': {
   #   }
-  #   default: {
+  #   'default': {
   #   }
   # }
-  
+
   # ---------------------------------------------------------
   # Set shared memory settings (OS X only)
   # ---------------------------------------------------------
@@ -649,12 +649,12 @@ class cspace_postgresql_server (
   # TODO: Add code to set up shared memory settings under OS X.
   # (For details, see the readme file included on the EnterpriseDB
   # disk image for installing PostgreSQL under OS X.)
-  
+
   # case $os_family {
   #   # OS X
-  #   darwin: {
+  #   'darwin': {
   #   }
-  #   default: {
+  #   'default': {
   #   }
   # }
 
@@ -662,18 +662,18 @@ class cspace_postgresql_server (
   # ######################################################################
   # Converge back to a single path here
   # ######################################################################
-  
+
   # ---------------------------------------------------------
   # Add datatype conversions
   # ---------------------------------------------------------
-  
+
   # The resources in this section add two datatype conversions
   # required by Nuxeo. Each are implemented via a combination of:
   # a function, a datatype cast that invokes the function,
   # and a comment on that function (as brief documentation).
-  
+
   $psql_cmd = "psql -U ${db_admin_user} -d template1"
-  
+
   # Tell puppet-lint to ignore double quoted string warnings in the blocks below
   # lint:ignore:double_quoted_strings
 
@@ -686,7 +686,7 @@ class cspace_postgresql_server (
   $int_txt_drop_cast = 'DROP CAST IF EXISTS (integer AS text);'
   $int_txt_cast      = 'CREATE CAST (integer AS text) WITH FUNCTION pg_catalog.text(integer) AS IMPLICIT;'
   $int_txt_comment   = 'COMMENT ON FUNCTION pg_catalog.text(integer) IS \'convert integer to text\';'
-  
+
   # Function and associated datatype cast to convert 'bigints' to text
   #
   # (See notes above, which apply equally to the command below.)
@@ -694,14 +694,14 @@ class cspace_postgresql_server (
   $bigint_txt_drop_cast = 'DROP CAST IF EXISTS (bigint AS text);'
   $bigint_txt_cast      = 'CREATE CAST (bigint AS text) WITH FUNCTION pg_catalog.text(bigint) AS IMPLICIT;'
   $bigint_txt_comment   = 'COMMENT ON FUNCTION pg_catalog.text(bigint) IS \'convert bigint to text\';'
-  
+
   # lint:endignore
 
   notify{ 'Adding datatype conversions':
     message => 'Adding Nuxeo-required datatype conversions to the database ...',
   }
   case $os_family {
-    RedHat, Debian: {
+    'RedHat', 'Debian': {
       # Integer-to-text conversion function, cast, and comment.
       exec { 'Add integer-to-text conversion function':
         command   => "${psql_cmd} -c \"${int_txt_function}\"",
@@ -709,10 +709,10 @@ class cspace_postgresql_server (
         path      => $exec_paths,
         user      => $db_admin_user,
         logoutput => on_failure,
-        require   => [ 
-          Class[ 'postgresql::server' ],
-          Class[ 'postgresql::client' ],
-          Notify[ 'Adding datatype conversions' ],
+        require   => [
+          Class['postgresql::server'],
+          Class['postgresql::client'],
+          Notify['Adding datatype conversions'],
         ]
       }
       exec { 'Drop existing integer-to-text conversion cast':
@@ -721,10 +721,10 @@ class cspace_postgresql_server (
         path      => $exec_paths,
         user      => $db_admin_user,
         logoutput => on_failure,
-        require   => [ 
-          Class[ 'postgresql::server' ],
-          Class[ 'postgresql::client' ],
-          Notify[ 'Adding datatype conversions' ],
+        require   => [
+          Class['postgresql::server'],
+          Class['postgresql::client'],
+          Notify['Adding datatype conversions'],
           Exec[ 'Add integer-to-text conversion function' ],
         ]
       }
@@ -734,10 +734,10 @@ class cspace_postgresql_server (
         path      => $exec_paths,
         user      => $db_admin_user,
         logoutput => on_failure,
-        require   => [ 
-          Class[ 'postgresql::server' ],
-          Class[ 'postgresql::client' ],
-          Notify[ 'Adding datatype conversions' ],
+        require   => [
+          Class['postgresql::server'],
+          Class['postgresql::client'],
+          Notify['Adding datatype conversions'],
           Exec[ 'Drop existing integer-to-text conversion cast' ],
         ]
       }
@@ -747,10 +747,10 @@ class cspace_postgresql_server (
         path      => $exec_paths,
         user      => $db_admin_user,
         logoutput => on_failure,
-        require   => [ 
-          Class[ 'postgresql::server' ],
-          Class[ 'postgresql::client' ],
-          Notify[ 'Adding datatype conversions' ],
+        require   => [
+          Class['postgresql::server'],
+          Class['postgresql::client'],
+          Notify['Adding datatype conversions'],
           Exec[ 'Add integer-to-text conversion function' ],
         ]
       }
@@ -761,10 +761,10 @@ class cspace_postgresql_server (
         path      => $exec_paths,
         user      => $db_admin_user,
         logoutput => on_failure,
-        require   => [ 
-          Class[ 'postgresql::server' ],
-          Class[ 'postgresql::client' ],
-          Notify[ 'Adding datatype conversions' ],
+        require   => [
+          Class['postgresql::server'],
+          Class['postgresql::client'],
+          Notify['Adding datatype conversions'],
         ]
       }
       exec { 'Drop existing bigint-to-text conversion cast':
@@ -773,10 +773,10 @@ class cspace_postgresql_server (
         path      => $exec_paths,
         user      => $db_admin_user,
         logoutput => on_failure,
-        require   => [ 
-          Class[ 'postgresql::server' ],
-          Class[ 'postgresql::client' ],
-          Notify[ 'Adding datatype conversions' ],
+        require   => [
+          Class['postgresql::server'],
+          Class['postgresql::client'],
+          Notify['Adding datatype conversions'],
           Exec[ 'Add bigint-to-text conversion function' ],
         ]
       }
@@ -786,10 +786,10 @@ class cspace_postgresql_server (
         path      => $exec_paths,
         user      => $db_admin_user,
         logoutput => on_failure,
-        require   => [ 
-          Class[ 'postgresql::server' ],
-          Class[ 'postgresql::client' ],
-          Notify[ 'Adding datatype conversions' ],
+        require   => [
+          Class['postgresql::server'],
+          Class['postgresql::client'],
+          Notify['Adding datatype conversions'],
           Exec[ 'Drop existing bigint-to-text conversion cast' ],
         ]
       }
@@ -799,28 +799,28 @@ class cspace_postgresql_server (
         path      => $exec_paths,
         user      => $db_admin_user,
         logoutput => on_failure,
-        require   => [ 
-          Class[ 'postgresql::server' ],
-          Class[ 'postgresql::client' ],
-          Notify[ 'Adding datatype conversions' ],
+        require   => [
+          Class['postgresql::server'],
+          Class['postgresql::client'],
+          Notify['Adding datatype conversions'],
           Exec[ 'Add bigint-to-text conversion function' ],
         ]
-      }      
+      }
     }
     # OS X
-    darwin: {
+    'darwin': {
       # TODO: We may be able to add 'darwin' as a case to the code block above,
       # as the mechanism for putting these datatype casts into place may
       # potentially be identical to the one used under various Linux distros.
       # This remains to be tested, however.
     }
     # Microsoft Windows
-    windows: {
+    'windows': {
     }
-    default: {
+    'default': {
     }
   }
 
-  
-  
+
+
 }
